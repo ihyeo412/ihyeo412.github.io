@@ -29,7 +29,8 @@
   /* ── Reset ─────────────────────────────────────────────────────────── */
   *, *::before, *::after { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
-  body, h1, h2, h3, h4, p, ol, ul, dl, dd, figure { margin: 0; }
+  body, h1, h2, h3, h4 { margin: 0; }
+  p, ol, ul, dl, dd, figure { margin: 0; }
   ol, ul { padding: 0; list-style: none; }
   img, svg { max-width: 100%; }
   button, input, select, textarea { font: inherit; }
@@ -91,7 +92,7 @@
     padding-inline: var(--sp);
   }
 
-  h1, h2, h3 {
+  h1, h2, h3, h4 {
     font-family: var(--f-display);
     font-weight: 600;
     line-height: 1.25;
@@ -132,7 +133,7 @@
   .masthead {
     display: flex;
     flex-wrap: wrap;
-    align-items: baseline;
+    align-items: center;
     gap: 0.6rem 1.4rem;
     padding-block: 1.6rem 1.2rem;
     border-bottom: 1px solid var(--hairline);
@@ -149,6 +150,7 @@
   .masthead nav {
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
     gap: 1.3rem;
     margin-left: auto;
     font-size: 0.82rem;
@@ -162,6 +164,19 @@
     cursor: pointer;
   }
   .masthead nav a:hover { color: var(--ink); border-bottom-color: var(--accent); }
+
+  .user-badge {
+    font-family: var(--f-mono);
+    font-size: 0.76rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--forest);
+    background: var(--surface);
+    padding: 0.2rem 0.6rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--hairline);
+  }
 
   /* ── Hero ──────────────────────────────────────────────────────────── */
   .hero { padding-block: clamp(2.6rem, 8vw, 4.6rem) 0; }
@@ -201,7 +216,7 @@
   .btn-solid:hover { background: var(--ink); border-color: var(--ink); }
   .btn-ghost { color: var(--ink); border-color: var(--hairline); }
   .btn-ghost:hover { border-color: var(--forest); }
-  .btn-sm { padding: 0.4rem 0.85rem; font-size: 0.78rem; }
+  .btn-sm { padding: 0.35rem 0.75rem; font-size: 0.76rem; }
 
   /* ── Ridgeline ─────────────────────────────────────────────────────── */
   .ridge {
@@ -346,6 +361,15 @@
     margin-right: 0.35rem;
   }
 
+  .rsvp-badge {
+    color: var(--forest);
+    font-weight: 500;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    padding: 0.1rem 0.4rem;
+    border-radius: var(--radius);
+  }
+
   .grade { display: inline-flex; gap: 2px; align-items: flex-end; }
   .grade i {
     display: block;
@@ -428,7 +452,7 @@
   /* ── Reports ───────────────────────────────────────────────────────── */
   .reports {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
     gap: 1px;
     background: var(--hairline);
     border-block: 1px solid var(--hairline);
@@ -438,7 +462,7 @@
     padding: 1.5rem 1.4rem;
     display: flex;
     flex-direction: column;
-    gap: 0.55rem;
+    gap: 0.8rem;
   }
   .report .kind {
     font-family: var(--f-mono);
@@ -446,6 +470,35 @@
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--accent);
+  }
+  .report-thumb {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: var(--surface-2);
+    position: relative;
+    cursor: pointer;
+  }
+  .report-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.2s;
+  }
+  .report-thumb:hover img {
+    transform: scale(1.03);
+  }
+  .play-badge {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(0,0,0,0.75);
+    color: #fff;
+    font-size: 0.65rem;
+    padding: 0.15rem 0.45rem;
+    border-radius: 2px;
+    font-family: var(--f-mono);
   }
   .report-title-link {
     background: none;
@@ -539,6 +592,291 @@
     font-size: 1.05rem;
     font-weight: 500;
     color: var(--ink);
+  }
+
+  /* ── Table Styled Members List ─────────────────────────────────────── */
+  .members-table-wrapper {
+    overflow-x: auto;
+    background: var(--ground);
+    border-radius: var(--radius);
+    border: 1px solid var(--hairline);
+  }
+  .members-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+    text-align: left;
+  }
+  .members-table th {
+    font-family: var(--f-mono);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    background: var(--surface-2);
+    color: var(--ink);
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .members-table td {
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--hairline);
+    color: var(--ink-soft);
+  }
+  .members-table tr:last-child td {
+    border-bottom: none;
+  }
+  .members-table tr:hover td {
+    background: color-mix(in srgb, var(--surface) 60%, transparent);
+  }
+  .role-badge {
+    display: inline-block;
+    font-family: var(--f-mono);
+    font-size: 0.68rem;
+    padding: 0.15rem 0.45rem;
+    border-radius: var(--radius);
+    font-weight: 500;
+  }
+  .role-badge.regular {
+    background: var(--forest);
+    color: var(--ground);
+  }
+  .role-badge.three-plus {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  /* ── RSVP Comments Section ─────────────────────────────────────────── */
+  .rsvp-section {
+    border-top: 1px solid var(--hairline);
+    padding-top: 1.8rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.4rem;
+  }
+  .rsvp-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .rsvp-head h3 {
+    font-size: 1.25rem;
+  }
+  .rsvp-count-tag {
+    font-family: var(--f-mono);
+    font-size: 0.8rem;
+    color: var(--forest);
+    font-weight: 600;
+  }
+  
+  .rsvp-form {
+    background: var(--ground);
+    padding: 1.2rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--hairline);
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+  }
+  .rsvp-login-notice {
+    background: var(--surface-2);
+    padding: 1.4rem;
+    border-radius: var(--radius);
+    text-align: center;
+    border: 1px solid var(--hairline);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .rsvp-login-notice p {
+    font-size: 0.9rem;
+    color: var(--ink-soft);
+  }
+
+  .rsvp-form input {
+    padding: 0.5rem 0.65rem;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: 0.88rem;
+    border-radius: var(--radius);
+  }
+  .rsvp-form input:focus {
+    border-color: var(--accent);
+    outline: none;
+  }
+  .rsvp-form-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .rsvp-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .rsvp-item {
+    background: var(--ground);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius);
+    padding: 0.9rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+  .rsvp-item-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+  .rsvp-author {
+    font-weight: 600;
+    font-size: 0.92rem;
+    color: var(--ink);
+  }
+  .rsvp-msg {
+    font-size: 0.88rem;
+    color: var(--ink-soft);
+    line-height: 1.5;
+  }
+
+  /* ── Introduction Cards (가입 인사) ────────────────────────────────── */
+  .intro-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 1.4rem;
+  }
+  .intro-card {
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius);
+    padding: 1.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .intro-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1px solid var(--hairline);
+    padding-bottom: 0.8rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .intro-author-title {
+    font-size: 1.15rem;
+    font-weight: 600;
+  }
+  .intro-meta-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    font-family: var(--f-mono);
+    font-size: 0.75rem;
+  }
+  .intro-tag {
+    background: var(--ground);
+    border: 1px solid var(--hairline);
+    padding: 0.15rem 0.5rem;
+    border-radius: var(--radius);
+    color: var(--ink-soft);
+  }
+  .intro-body {
+    font-size: 0.92rem;
+    color: var(--ink);
+    line-height: 1.7;
+    white-space: pre-line;
+  }
+
+  /* ── 환영인사 폰트 화이트 테마 ────────────────────────────────────── */
+  .welcome-list {
+    background: #1e2922;
+    border-radius: var(--radius);
+    padding: 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    border: 1px solid #2e3e34;
+    color: #ffffff;
+  }
+  .welcome-list * {
+    color: #ffffff;
+  }
+  .welcome-item {
+    font-size: 0.88rem;
+    color: #ffffff !important;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+    line-height: 1.5;
+  }
+  .welcome-item span {
+    color: #ffffff !important;
+  }
+  .welcome-author {
+    font-weight: 600;
+    color: #8fb3a2 !important;
+  }
+  .welcome-input-row {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.4rem;
+  }
+  .welcome-input-row input {
+    flex: 1;
+    padding: 0.45rem 0.65rem;
+    background: #141c17;
+    border: 1px solid #3d4f43;
+    border-radius: var(--radius);
+    font-size: 0.84rem;
+    color: #ffffff !important;
+  }
+  .welcome-input-row input::placeholder {
+    color: #8e9c92;
+  }
+  .welcome-input-row input:focus {
+    border-color: var(--accent);
+    outline: none;
+  }
+  .welcome-notice-text {
+    text-align: right;
+    font-size: 0.78rem;
+    color: #c3ccbf !important;
+    margin-top: 0.4rem;
+  }
+  .welcome-notice-text a {
+    color: #8fb3a2 !important;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  /* ── YouTube Video Player Section ──────────────────────────────────── */
+  .video-container {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--hairline);
+    background: #000;
+    margin-top: 0.5rem;
+  }
+  .video-container iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
   }
 
   /* ── Photo Gallery ─────────────────────────────────────────────────── */
@@ -681,13 +1019,32 @@
   }
   .modal-foot { display: flex; justify-content: flex-end; gap: 0.6rem; margin-top: 0.5rem; }
 
-  /* ── Join & Resources ──────────────────────────────────────────────── */
+  /* ── Join Interactive Steps ────────────────────────────────────────── */
   .steps {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
     gap: 1.6rem;
   }
-  .step { border-top: 2px solid var(--forest); padding-top: 1rem; }
+  .step { 
+    border-top: 2px solid var(--forest); 
+    padding-top: 1rem;
+    transition: transform 0.15s;
+  }
+  .step-interactive {
+    cursor: pointer;
+  }
+  .step-interactive:hover {
+    transform: translateY(-2px);
+  }
+  .step-interactive h3 {
+    text-decoration: underline;
+    text-decoration-color: var(--hairline);
+    text-underline-offset: 3px;
+  }
+  .step-interactive:hover h3 {
+    color: var(--forest);
+    text-decoration-color: var(--accent);
+  }
   .step .num {
     font-family: var(--f-mono);
     font-size: 0.7rem;
@@ -774,6 +1131,7 @@
       <a href="#reports" onclick="showMainView()">산행 후기</a>
       <a href="#join" onclick="showMainView()">가입 안내</a>
       <a href="#info" onclick="showMainView()">준비 정보</a>
+      <div id="auth-nav-container"></div>
     </nav>
   </header>
 
@@ -803,7 +1161,7 @@
           <path fill="url(#ridgeFill)" stroke="none"
             d="M0,132 L38,124 L74,127 L112,108 L150,116 L186,96 L214,101 L248,74 L282,88 L318,80 L352,95 L390,66 L422,78 L458,54 L492,70 L528,44 L560,58 L596,30 L628,47 L664,36 L700,61 L734,50 L770,76 L806,64 L840,86 L876,72 L910,97 L946,84 L982,104 L1018,92 L1054,113 L1090,101 L1126,121 L1162,110 L1200,128 L1200,150 L0,150 Z"/>
           <path class="ridge-line" fill="none" stroke-width="1.4" stroke-linejoin="round"
-            d="M0,132 L38,124 L74,127 L112,108 L150,116 L186,96 L214,101 L248,74 L282,88 L318,80 L352,95 L390,66 L422,78 L458,54 L492,70 L528,44 L560,58 L596,30 L628,47 L664,36 L700,61 L734,50 L770,76 L806,64 L840,86 L876,72 L910,97 L946,84 L982,104 L1018,92 L1054,113 L1090,101 L1126,121 L1162,110 L1200,128"/>
+            d="M0,132 L38,124 L74,127 L112,108 L150,116 L186,96 L214,101 L248,74 L282,88 L318,80 L352,95 L390,66 L422,78 L458,54 L492,70 L528,44 L560,58 L596,30 L628,47 L664,36 L700,61 L734,50 L770,76 L806,64 L840,86 L876,72 L910,97 L946,84 L982,104 L1018,92 L1054,113 L1090,101 L1126,121 L1162,110 L1200,128 L1200,150 L0,150 Z"/>
           <circle class="peak-dot" cx="596" cy="30" r="3.2"/>
         </svg>
         <div class="ridge-labels">
@@ -830,7 +1188,7 @@
         <div class="group-label">
           <h3>전체 산행 일정</h3>
           <div class="rule"></div>
-          <div class="cadence">장소명을 클릭하면 상세 지도 페이지가 열립니다</div>
+          <div class="cadence">코스명을 클릭해 지도 확인 및 참가 댓글을 남겨주세요</div>
         </div>
         <div id="hike-list"></div>
         
@@ -838,11 +1196,11 @@
       </div>
     </section>
 
-    <!-- ── Reports Section ─────────────────────────────────────────── -->
+    <!-- ── Reports Section (정회원 전용) ────────────────────────────── -->
     <section class="section" id="reports">
       <div class="section-head">
         <h2>산행 후기</h2>
-        <span class="period">생생한 현장 기록</span>
+        <span class="period">정회원 전용 영상 & 사진 기록</span>
         <div class="head-actions">
           <button type="button" class="btn btn-solid btn-sm" id="open-report-modal-btn">+ 후기 작성하기</button>
         </div>
@@ -851,7 +1209,7 @@
       <div class="reports" id="report-list"></div>
     </section>
 
-    <!-- ── Join Section ────────────────────────────────────────────── -->
+    <!-- ── Join Section (신입 회원 전용 조건 반영) ─────────────────── -->
     <section class="section" id="join">
       <div class="section-head">
         <h2>함께 하는 방법</h2>
@@ -861,23 +1219,20 @@
       </div>
 
       <div class="steps">
-        <div class="step">
+        <div class="step step-interactive" onclick="openIntroBoardView()">
           <div class="num">STEP 01</div>
-          <h3>가입 인사 남기기</h3>
-          <p>어느 동네에 사는지, 어떤 산행을 해 보셨는지 한두 줄이면 충분합니다.
-             닉네임 하나 정해서 오시면 됩니다.</p>
+          <h3>가입 인사 남기기 ↗</h3>
+          <p>어느 동네에 사는지, 어떤 산행을 해 보셨는지 한두 줄이면 충분합니다. 클릭하여 인사글을 남겨주세요.</p>
         </div>
-        <div class="step">
-          <div class="num">STEP 02</div>
-          <h3>산행 세 번 참여</h3>
-          <p>주말 산행이 가장 무난합니다. 처음이라면 후다트처럼
-             짧고 그늘 깊은 코스부터 오시는 걸 권합니다.</p>
+        <div class="step step-interactive" onclick="openMembersBoardView('three')">
+          <div class="num">STEP 02 (신입 회원)</div>
+          <h3>산행 세 번 참여 ↗</h3>
+          <p>신규 가입 회원은 정규 산행에 3회 이상 참여해야 합니다. 신입 회원들의 참여 현황을 확인해보세요.</p>
         </div>
-        <div class="step">
+        <div class="step step-interactive" onclick="openMembersBoardView('regular')">
           <div class="num">STEP 03</div>
-          <h3>정회원 등업</h3>
-          <p>세 번 이후 운영진이 등업 공지를 올립니다.
-             특별 산행 신청과 회원 장터를 이용하실 수 있습니다.</p>
+          <h3>정회원 등업 ↗</h3>
+          <p>신입 회원 3회 참여 후 정회원으로 등업된 전체 회원 명단입니다. 산행 후기 열람 및 특별 산행이 가능합니다.</p>
         </div>
       </div>
     </section>
@@ -916,7 +1271,7 @@
     </section>
   </div>
 
-  <!-- ── Hike Detail View (산행 상세 및 임베드 지도) ─────────────────── -->
+  <!-- ── Hike Detail View (산행 상세 + 임베드 지도 + 참가신청 댓글) ──── -->
   <main id="hike-detail-view" class="detail-view">
     <div class="back-nav">
       <button type="button" class="btn btn-ghost btn-sm" onclick="showMainView()">← 전체 일정으로 돌아가기</button>
@@ -924,13 +1279,212 @@
     <div class="detail-card" id="hike-detail-content"></div>
   </main>
 
-  <!-- ── Report Detail View (산행 후기 상세 페이지) ──────────────────── -->
+  <!-- ── Report Detail View (산행 후기 상세 페이지 - YouTube & Gallery) ── -->
   <main id="report-detail-view" class="detail-view">
     <div class="back-nav">
       <button type="button" class="btn btn-ghost btn-sm" onclick="showMainView()">← 후기 목록으로 돌아가기</button>
     </div>
     <div class="detail-card" id="report-detail-content"></div>
   </main>
+
+  <!-- ── Intro Board View (가입 인사 전용 페이지) ───────────────────── -->
+  <main id="intro-board-view" class="detail-view">
+    <div class="back-nav">
+      <button type="button" class="btn btn-ghost btn-sm" onclick="showMainView()">← 홈으로 돌아가기</button>
+    </div>
+    <div class="detail-card">
+      <div class="detail-header" style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:1rem;">
+        <div>
+          <div class="eyebrow">STEP 01 · Welcome to ihiker</div>
+          <h2 class="detail-title">가입 인사 게시판</h2>
+        </div>
+        <button type="button" class="btn btn-solid btn-sm" id="open-intro-modal-btn">+ 가입 인사 작성하기</button>
+      </div>
+
+      <div class="intro-cards" id="intro-list-container"></div>
+    </div>
+  </main>
+
+  <!-- ── Members Board View (신입 회원 3회 참여 및 정회원 등업 명단) ──── -->
+  <main id="members-board-view" class="detail-view">
+    <div class="back-nav">
+      <button type="button" class="btn btn-ghost btn-sm" onclick="showMainView()">← 홈으로 돌아가기</button>
+    </div>
+    <div class="detail-card">
+      <div class="detail-header" style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:1rem;">
+        <div>
+          <div class="eyebrow" id="members-board-eyebrow">STEP 02 (신입 회원) · New Members 3 Hikes</div>
+          <h2 class="detail-title" id="members-board-title">신입 회원 3회 참여 현황</h2>
+        </div>
+        <button type="button" class="btn btn-solid btn-sm" id="open-member-modal-btn">+ 회원 명단 등록/수정</button>
+      </div>
+
+      <div class="members-table-wrapper">
+        <table class="members-table">
+          <thead>
+            <tr>
+              <th>닉네임</th>
+              <th>구분</th>
+              <th>참여 횟수</th>
+              <th>최근 참여 산행</th>
+              <th>등업/등록일</th>
+              <th>관리</th>
+            </tr>
+          </thead>
+          <tbody id="members-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- ── Member Modal (회원 참여/정회원 등록 모달) ────────────────── -->
+  <dialog id="member-modal" class="modal">
+    <form id="member-form" method="dialog" class="modal-box">
+      <div class="modal-head">
+        <h3 id="member-modal-title">회원 명단 등록</h3>
+        <button type="button" id="close-member-modal-btn" class="close-btn" aria-label="닫기">×</button>
+      </div>
+
+      <div class="form-grid">
+        <label>
+          <span>회원 닉네임</span>
+          <input type="text" id="member-name" placeholder="예: 구름손" required>
+        </label>
+        <label>
+          <span>회원 등급 / 구분</span>
+          <select id="member-status">
+            <option value="three">신입 회원 (3회 참여 중 / 등업 대기)</option>
+            <option value="regular">정회원 (등업 완료)</option>
+          </select>
+        </label>
+        <label>
+          <span>총 참여 횟수</span>
+          <input type="number" id="member-count" min="1" value="3" required>
+        </label>
+        <label>
+          <span>최근 참여 산행지</span>
+          <input type="text" id="member-recent-hike" placeholder="예: 후다트 카운티 파크" required>
+        </label>
+        <label class="full">
+          <span>비고 및 등업 메모</span>
+          <input type="text" id="member-memo" placeholder="예: 신입 회원 3회 산행 완료 / 등업 확인">
+        </label>
+      </div>
+
+      <div class="modal-foot">
+        <button type="button" class="btn btn-ghost btn-sm" id="cancel-member-btn">취소</button>
+        <button type="submit" class="btn btn-solid btn-sm">명단 저장</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ── Intro Modal (가입 인사 작성 모달) ─────────────────────────── -->
+  <dialog id="intro-modal" class="modal">
+    <form id="intro-form" method="dialog" class="modal-box">
+      <div class="modal-head">
+        <h3>가입 인사 남기기</h3>
+        <button type="button" id="close-intro-modal-btn" class="close-btn" aria-label="닫기">×</button>
+      </div>
+
+      <div class="form-grid">
+        <label>
+          <span>1. 닉네임</span>
+          <input type="text" id="intro-nickname" placeholder="예: 솔바람" required>
+        </label>
+        <label>
+          <span>2. 사는 곳 (지역/도시)</span>
+          <input type="text" id="intro-location" placeholder="예: 산호세, 서니베일, SF" required>
+        </label>
+        <label>
+          <span>3. 성별</span>
+          <select id="intro-gender">
+            <option value="남성">남성</option>
+            <option value="여성">여성</option>
+            <option value="기타">기타 / 비공개</option>
+          </select>
+        </label>
+        <label>
+          <span>4. 가입 경로</span>
+          <select id="intro-channel">
+            <option value="지인 추천">지인 추천</option>
+            <option value="구글 / 웹 검색">구글 / 웹 검색</option>
+            <option value="한인 커뮤니티">한인 커뮤니티</option>
+            <option value="SNS / 기타">SNS / 기타</option>
+          </select>
+        </label>
+        <label class="full">
+          <span>5. 소개글 및 인사 말씀</span>
+          <textarea id="intro-bio" rows="4" placeholder="평소 즐겨 하시는 산행 스타일이나 가입 소감을 편하게 적어주세요." required></textarea>
+        </label>
+      </div>
+
+      <div class="modal-foot">
+        <button type="button" class="btn btn-ghost btn-sm" id="cancel-intro-btn">취소</button>
+        <button type="submit" class="btn btn-solid btn-sm">인사 남기기</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ── Auth Modal (로그인 / 회원가입) ────────────────────────────── -->
+  <dialog id="auth-modal" class="modal">
+    <form id="auth-form" method="dialog" class="modal-box">
+      <div class="modal-head">
+        <h3 id="auth-modal-title">로그인</h3>
+        <button type="button" id="close-auth-modal-btn" class="close-btn" aria-label="닫기">×</button>
+      </div>
+
+      <div class="form-grid">
+        <label class="full">
+          <span>Username (아이디)</span>
+          <input type="text" id="auth-username" placeholder="예: ihiker" required autocomplete="username">
+        </label>
+        <label class="full">
+          <span>Password (비밀번호)</span>
+          <input type="password" id="auth-password" placeholder="비밀번호 입력" required autocomplete="current-password">
+        </label>
+      </div>
+
+      <p id="auth-error-msg" style="display:none; color:#d9534f; font-size:0.8rem; margin:0;"></p>
+
+      <div class="modal-foot" style="justify-content: space-between; align-items: center;">
+        <button type="button" id="toggle-auth-mode-btn" style="background:none; border:none; color:var(--forest); font-size:0.82rem; text-decoration:underline; cursor:pointer; padding:0;">
+          계정이 없으신가요? 간편 가입하기
+        </button>
+        <div style="display:flex; gap:0.5rem;">
+          <button type="button" class="btn btn-ghost btn-sm" id="cancel-auth-btn">취소</button>
+          <button type="submit" class="btn btn-solid btn-sm" id="auth-submit-btn">로그인</button>
+        </div>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ── Change Password Modal (비밀번호 변경) ──────────────────────── -->
+  <dialog id="change-pwd-modal" class="modal">
+    <form id="change-pwd-form" method="dialog" class="modal-box">
+      <div class="modal-head">
+        <h3>비밀번호 변경</h3>
+        <button type="button" id="close-change-pwd-btn" class="close-btn" aria-label="닫기">×</button>
+      </div>
+
+      <div class="form-grid">
+        <label class="full">
+          <span>현재 비밀번호</span>
+          <input type="password" id="curr-password" placeholder="현재 비밀번호 입력" required autocomplete="current-password">
+        </label>
+        <label class="full">
+          <span>새 비밀번호</span>
+          <input type="password" id="new-password" placeholder="변경할 새 비밀번호 입력" required autocomplete="new-password">
+        </label>
+      </div>
+
+      <p id="change-pwd-error-msg" style="display:none; color:#d9534f; font-size:0.8rem; margin:0;"></p>
+
+      <div class="modal-foot">
+        <button type="button" class="btn btn-ghost btn-sm" id="cancel-change-pwd-btn">취소</button>
+        <button type="submit" class="btn btn-solid btn-sm">변경 완료</button>
+      </div>
+    </form>
+  </dialog>
 
   <!-- ── Hike Modal ────────────────────────────────────────────────── -->
   <dialog id="hike-modal" class="modal">
@@ -1002,7 +1556,7 @@
     </form>
   </dialog>
 
-  <!-- ── Report Modal ──────────────────────────────────────────────── -->
+  <!-- ── Report Modal (YouTube 링크 입력 추가) ─────────────────────── -->
   <dialog id="report-modal" class="modal">
     <form id="report-form" method="dialog" class="modal-box">
       <div class="modal-head">
@@ -1029,8 +1583,12 @@
           <input type="text" id="report-title" placeholder="예: 늦여름 타마락 플랫에서 보낸 하룻밤" required>
         </label>
         <label class="full">
+          <span>YouTube 영상 링크 (URL)</span>
+          <input type="url" id="report-youtube" placeholder="https://www.youtube.com/watch?v=... 또는 https://youtu.be/...">
+        </label>
+        <label class="full">
           <span>후기 본문 내용</span>
-          <textarea id="report-content" rows="6" placeholder="코스 상태, 날씨, 샘터 위치, 주차 팁 등을 자유롭게 적어주세요." required></textarea>
+          <textarea id="report-content" rows="5" placeholder="코스 상태, 날씨, 샘터 위치, 주차 팁 등을 자유롭게 적어주세요." required></textarea>
         </label>
         <label class="full">
           <span>사진 첨부 (다중 선택 가능)</span>
@@ -1071,7 +1629,10 @@
       tag: "정기", 
       notes: "레드우드 숲길을 따라 걷는 피톤치드 코스",
       gmap: "Purisima Creek Redwoods Open Space Preserve, Half Moon Bay, CA",
-      alltrails: "https://www.alltrails.com/trail/us/california/purisima-creek-trail-to-harkins-ridge-trail-loop"
+      alltrails: "https://www.alltrails.com/trail/us/california/purisima-creek-trail-to-harkins-ridge-trail-loop",
+      rsvps: [
+        { id: 101, username: "ihiker", msg: "산호세에서 참석합니다. 좋은 산행 기대됩니다!" }
+      ]
     },
     { 
       id: 2, 
@@ -1086,7 +1647,8 @@
       tag: "정기", 
       notes: "정상 시그니처 폴대 및 베이 조망",
       gmap: "Stanford Avenue Staging Area, Fremont, CA",
-      alltrails: "https://www.alltrails.com/trail/us/california/mission-peak-loop-via-peak-meadow-trail"
+      alltrails: "https://www.alltrails.com/trail/us/california/mission-peak-loop-via-peak-meadow-trail",
+      rsvps: []
     },
     { 
       id: 3, 
@@ -1101,7 +1663,8 @@
       tag: "정기", 
       notes: "초보 환영 · 울창한 그늘 트레일",
       gmap: "Huddart Park, 1100 Kings Mountain Rd, Woodside, CA",
-      alltrails: "https://www.alltrails.com/trail/us/california/richard-s-road-trail-to-crystal-springs-trail-loop"
+      alltrails: "https://www.alltrails.com/trail/us/california/richard-s-road-trail-to-crystal-springs-trail-loop",
+      rsvps: []
     },
     { 
       id: 4, 
@@ -1116,7 +1679,8 @@
       tag: "정기", 
       notes: "석회 가마터와 계곡길 탐방",
       gmap: "Fall Creek Unit Henry Cowell Redwoods Felton CA",
-      alltrails: "https://www.alltrails.com/trail/us/california/fall-creek-trail-to-lost-empire-trail-loop"
+      alltrails: "https://www.alltrails.com/trail/us/california/fall-creek-trail-to-lost-empire-trail-loop",
+      rsvps: []
     },
     { 
       id: 5, 
@@ -1131,7 +1695,8 @@
       tag: "정기", 
       notes: "능선 파노라마 뷰 코스",
       gmap: "Pleasanton Ridge Regional Park Foothill Staging Area, Pleasanton, CA",
-      alltrails: "https://www.alltrails.com/trail/us/california/pleasanton-ridge-trail"
+      alltrails: "https://www.alltrails.com/trail/us/california/pleasanton-ridge-trail",
+      rsvps: []
     },
     { 
       id: 6, 
@@ -1147,7 +1712,8 @@
       isHot: true, 
       notes: "시에라 백팩킹 퍼밋 확보 인원",
       gmap: "Mineral King Ranger Station, Sequoia National Park, CA",
-      alltrails: "https://www.alltrails.com/trail/us/california/mineral-king-to-sawtooth-pass-loop"
+      alltrails: "https://www.alltrails.com/trail/us/california/mineral-king-to-sawtooth-pass-loop",
+      rsvps: []
     }
   ];
 
@@ -1156,6 +1722,7 @@
       id: 1,
       kind: "백팩킹",
       title: "레이 레이크스 루프 3박 4일",
+      youtube: "https://www.youtube.com/watch?v=ScMzIvxBSi4",
       content: "글렌 패스를 넘던 날 아침이 제일 추웠습니다. 물은 트레일 전 구간에서 맑고 풍부하게 구할 수 있었고, 곰통은 꽉 채워도 4일치가 겨우 들어갑니다.\n\n캠프 자리는 레이 레이크스 북쪽 호숫가가 바람도 덜 타고 경치가 뛰어납니다. 다음 팀을 위해 주요 샘터와 야영지 좌표를 메모로 남깁니다.",
       by: "휴먼 · 8월 21–24일",
       photos: [
@@ -1167,6 +1734,7 @@
       id: 2,
       kind: "주말 산행",
       title: "안 와 본 사람은 있어도 한 번만 온 사람은 없다",
+      youtube: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
       content: "여덟 분이 아주 액티브하게 걸었고, 끝나고는 시원한 식혜와 수박으로 뒷풀이를 했습니다.\n\n후다트는 한여름에도 레드우드 그늘이 깊어서 기온이 5도 이상 낮게 느껴집니다. 초보자분들도 무리 없이 즐길 수 있는 최고의 여름 코스입니다.",
       by: "휴먼 · 8월 29일",
       photos: [
@@ -1177,6 +1745,7 @@
       id: 3,
       kind: "백팩킹",
       title: "커시드럴 호수에서 클라우즈 레스트까지",
+      youtube: "",
       content: "첫날은 선라이즈 레이크, 둘째 날은 리틀 요세미티 밸리에서 묵었습니다.\n\n퍼밋은 커시드럴 레이크스(871번)로 잡았고, 온라인 매진 이후에도 2주 전 취소표 자리가 났습니다. 정상에서 내려다보는 하프돔 뷰가 압권이었습니다.",
       by: "파피 · 7월 11–13일",
       photos: [
@@ -1185,10 +1754,53 @@
     }
   ];
 
+  const defaultIntros = [
+    {
+      id: 1,
+      nickname: "산바람",
+      location: "산호세 (San Jose)",
+      gender: "남성",
+      channel: "구글 / 웹 검색",
+      bio: "베이 지역 트레일을 매주 주말마다 걷고 있습니다. 회원분들과 좋은 인연 만들고 싶습니다!",
+      date: "2026-08-15",
+      welcomes: [
+        { id: 101, username: "ihiker", msg: "산바람님 반갑습니다! 주말 산행에서 봬요 :)" }
+      ]
+    },
+    {
+      id: 2,
+      nickname: "클라우드",
+      location: "서니베일 (Sunnyvale)",
+      gender: "여성",
+      channel: "지인 추천",
+      bio: "지인 소개로 가입했습니다. 국립공원 트레킹과 백팩킹에 관심이 많습니다. 잘 부탁드립니다.",
+      date: "2026-08-20",
+      welcomes: [
+        { id: 201, username: "ihiker", msg: "환영합니다! 이번 달 백팩킹 코스도 꼭 참여해보세요." }
+      ]
+    }
+  ];
+
+  const defaultMembers = [
+    { id: 1, name: "ihiker", status: "regular", count: 30, recentHike: "요세미티", date: "2026-01-01", memo: "관리자 / 정회원" },
+    { id: 2, name: "JB", status: "regular", count: 18, recentHike: "퍼리시마 크릭 레드우즈", date: "2026-05-12", memo: "정회원 / 운영진 안내" },
+    { id: 3, name: "산초", status: "regular", count: 14, recentHike: "미션 피크", date: "2026-06-04", memo: "정회원 / 안내 리더" },
+    { id: 4, name: "파피", status: "regular", count: 22, recentHike: "후다트 카운티 파크", date: "2026-04-18", memo: "정회원 / 백팩킹 담당" },
+    { id: 5, name: "창공", status: "regular", count: 9, recentHike: "헨리 카웰 SP", date: "2026-07-22", memo: "정회원 승급 완료" },
+    { id: 6, name: "청산", status: "three", count: 2, recentHike: "퍼리시마 크릭", date: "2026-08-28", memo: "신입 회원 (2회 완료 / 1회 남음)" },
+    { id: 7, name: "바람", status: "three", count: 3, recentHike: "후다트 카운티 파크", date: "2026-08-30", memo: "신입 회원 3회 달성 / 등업 대기" }
+  ];
+
   const STORAGE_HIKE_KEY = "ihiker_schedules";
   const STORAGE_REPORT_KEY = "ihiker_reports";
+  const STORAGE_AUTH_USERS = "ihiker_users";
+  const STORAGE_CURRENT_USER = "ihiker_current_user";
+  const STORAGE_INTRO_KEY = "ihiker_intros";
+  const STORAGE_MEMBERS_KEY = "ihiker_members";
   const ITEMS_PER_PAGE = 4;
   let currentPage = 1;
+  let isSignupMode = false;
+  let activeMemberFilter = 'all';
 
   function parseHikeDate(dateStr) {
     const match = dateStr.match(/^(\d{1,2})\/(\d{1,2})/);
@@ -1209,7 +1821,200 @@
   };
   const saveReports = (data) => localStorage.setItem(STORAGE_REPORT_KEY, JSON.stringify(data));
 
-  /* ── Embed & Search Helpers ────────────────────────────────────────── */
+  const getIntros = () => {
+    const data = localStorage.getItem(STORAGE_INTRO_KEY);
+    return data ? JSON.parse(data) : defaultIntros;
+  };
+  const saveIntros = (data) => localStorage.setItem(STORAGE_INTRO_KEY, JSON.stringify(data));
+
+  const getMembers = () => {
+    const data = localStorage.getItem(STORAGE_MEMBERS_KEY);
+    return data ? JSON.parse(data) : defaultMembers;
+  };
+  const saveMembers = (data) => localStorage.setItem(STORAGE_MEMBERS_KEY, JSON.stringify(data));
+
+  /* ── User Auth & Regular Member Checking ───────────────────────────── */
+  const getUsers = () => {
+    const data = localStorage.getItem(STORAGE_AUTH_USERS);
+    return data ? JSON.parse(data) : { "ihiker": "12345" };
+  };
+  const saveUsers = (data) => localStorage.setItem(STORAGE_AUTH_USERS, JSON.stringify(data));
+
+  const getCurrentUser = () => localStorage.getItem(STORAGE_CURRENT_USER);
+  const setCurrentUser = (username) => {
+    if (username) {
+      localStorage.setItem(STORAGE_CURRENT_USER, username);
+    } else {
+      localStorage.removeItem(STORAGE_CURRENT_USER);
+    }
+    renderAuthNav();
+  };
+
+  function isRegularMember(username) {
+    if (!username) return false;
+    if (username === "ihiker") return true;
+    const members = getMembers();
+    return members.some(m => m.name === username && m.status === "regular");
+  }
+
+  function renderAuthNav() {
+    const container = document.getElementById("auth-nav-container");
+    const user = getCurrentUser();
+    if (user) {
+      const regularStatus = isRegularMember(user);
+      container.innerHTML = `
+        <div class="user-badge">
+          <span>👤 ${user} <small style="color:${regularStatus ? 'var(--forest)' : 'var(--accent)'}; font-weight:600;">[${regularStatus ? '정회원' : '신입'}]</small></span>
+          <button type="button" onclick="openChangePwdModal()" style="background:none; border:none; color:var(--forest); font-size:0.72rem; cursor:pointer; padding:0; text-decoration:underline;">비번변경</button>
+          <button type="button" onclick="logout()" style="background:none; border:none; color:var(--muted); font-size:0.72rem; cursor:pointer; padding:0; text-decoration:underline;">로그아웃</button>
+        </div>
+      `;
+    } else {
+      container.innerHTML = `
+        <button type="button" class="btn btn-ghost btn-sm" onclick="openAuthModal(false)">로그인</button>
+      `;
+    }
+  }
+
+  window.logout = function() {
+    setCurrentUser(null);
+    const hikeView = document.getElementById("hike-detail-view");
+    if (hikeView.style.display === "block" && window.currentDetailHikeId) {
+      openHikeDetail(window.currentDetailHikeId);
+    }
+    const introView = document.getElementById("intro-board-view");
+    if (introView.style.display === "block") {
+      renderIntros();
+    }
+    const memView = document.getElementById("members-board-view");
+    if (memView.style.display === "block") {
+      renderMembersTable();
+    }
+    const reportDetailView = document.getElementById("report-detail-view");
+    if (reportDetailView.style.display === "block") {
+      showMainView();
+    }
+    renderReports();
+  };
+
+  /* ── Auth Modal Event Handlers ─────────────────────────────────────── */
+  const authModal = document.getElementById("auth-modal");
+  window.openAuthModal = function(signup = false) {
+    isSignupMode = signup;
+    document.getElementById("auth-modal-title").innerText = signup ? "회원가입" : "로그인";
+    document.getElementById("auth-submit-btn").innerText = signup ? "가입하기" : "로그인";
+    document.getElementById("toggle-auth-mode-btn").innerText = signup ? "이미 계정이 있으신가요? 로그인하기" : "계정이 없으신가요? 간편 가입하기";
+    document.getElementById("auth-error-msg").style.display = "none";
+    document.getElementById("auth-form").reset();
+    authModal.showModal();
+  };
+
+  document.getElementById("close-auth-modal-btn").addEventListener("click", () => authModal.close());
+  document.getElementById("cancel-auth-btn").addEventListener("click", () => authModal.close());
+
+  document.getElementById("toggle-auth-mode-btn").addEventListener("click", () => {
+    openAuthModal(!isSignupMode);
+  });
+
+  document.getElementById("auth-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const username = document.getElementById("auth-username").value.trim();
+    const password = document.getElementById("auth-password").value.trim();
+    const errorMsg = document.getElementById("auth-error-msg");
+    const users = getUsers();
+
+    if (isSignupMode) {
+      if (users[username]) {
+        errorMsg.innerText = "이미 존재하는 사용자 이름입니다.";
+        errorMsg.style.display = "block";
+        return;
+      }
+      users[username] = password;
+      saveUsers(users);
+
+      const members = getMembers();
+      members.push({
+        id: Date.now(),
+        name: username,
+        status: "three",
+        count: 0,
+        recentHike: "-",
+        date: new Date().toISOString().split("T")[0],
+        memo: "신규 가입 회원 (3회 참여 조건 대상)"
+      });
+      saveMembers(members);
+
+      setCurrentUser(username);
+      authModal.close();
+      if (window.currentDetailHikeId) openHikeDetail(window.currentDetailHikeId);
+      if (document.getElementById("intro-board-view").style.display === "block") renderIntros();
+      if (document.getElementById("members-board-view").style.display === "block") renderMembersTable();
+      renderReports();
+    } else {
+      if (!users[username] || users[username] !== password) {
+        errorMsg.innerText = "사용자 이름 또는 비밀번호가 일치하지 않습니다.";
+        errorMsg.style.display = "block";
+        return;
+      }
+      setCurrentUser(username);
+      authModal.close();
+      if (window.currentDetailHikeId) openHikeDetail(window.currentDetailHikeId);
+      if (document.getElementById("intro-board-view").style.display === "block") renderIntros();
+      if (document.getElementById("members-board-view").style.display === "block") renderMembersTable();
+      renderReports();
+    }
+  });
+
+  /* ── Change Password Modal Handlers ────────────────────────────────── */
+  const changePwdModal = document.getElementById("change-pwd-modal");
+  window.openChangePwdModal = function() {
+    document.getElementById("change-pwd-error-msg").style.display = "none";
+    document.getElementById("change-pwd-form").reset();
+    changePwdModal.showModal();
+  };
+
+  document.getElementById("close-change-pwd-btn").addEventListener("click", () => changePwdModal.close());
+  document.getElementById("cancel-change-pwd-btn").addEventListener("click", () => changePwdModal.close());
+
+  document.getElementById("change-pwd-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const currentUser = getCurrentUser();
+    const currPassword = document.getElementById("curr-password").value.trim();
+    const newPassword = document.getElementById("new-password").value.trim();
+    const errorMsg = document.getElementById("change-pwd-error-msg");
+    const users = getUsers();
+
+    if (!currentUser || !users[currentUser]) {
+      errorMsg.innerText = "로그인 세션이 만료되었습니다. 다시 로그인해 주세요.";
+      errorMsg.style.display = "block";
+      return;
+    }
+
+    if (users[currentUser] !== currPassword) {
+      errorMsg.innerText = "현재 비밀번호가 일치하지 않습니다.";
+      errorMsg.style.display = "block";
+      return;
+    }
+
+    users[currentUser] = newPassword;
+    saveUsers(users);
+    alert("비밀번호가 성공적으로 변경되었습니다.");
+    changePwdModal.close();
+  });
+
+  /* ── YouTube & Map Helpers ─────────────────────────────────────────── */
+  function extractYouTubeId(url) {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+  }
+
+  function getYouTubeThumbnail(url) {
+    const videoId = extractYouTubeId(url);
+    return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
+  }
+
   function extractSearchQuery(input) {
     if (!input) return "";
     let clean = input.trim();
@@ -1249,9 +2054,319 @@
     document.getElementById("main-view").style.display = "block";
     document.getElementById("hike-detail-view").style.display = "none";
     document.getElementById("report-detail-view").style.display = "none";
+    document.getElementById("intro-board-view").style.display = "none";
+    document.getElementById("members-board-view").style.display = "none";
+    window.currentDetailHikeId = null;
   };
 
+  /* ── Members Board (STEP 02: 신입 회원 & STEP 03: 정회원) ──────────── */
+  window.openMembersBoardView = function(filter = 'all') {
+    activeMemberFilter = filter;
+    document.getElementById("main-view").style.display = "none";
+    document.getElementById("hike-detail-view").style.display = "none";
+    document.getElementById("report-detail-view").style.display = "none";
+    document.getElementById("intro-board-view").style.display = "none";
+    document.getElementById("members-board-view").style.display = "block";
+
+    const eyebrow = document.getElementById("members-board-eyebrow");
+    const title = document.getElementById("members-board-title");
+
+    if (filter === 'three') {
+      eyebrow.innerText = "STEP 02 (신입 회원) · New Members 3 Hikes";
+      title.innerText = "신입 회원 산행 참여 현황 (3회 달성 시 등업)";
+    } else if (filter === 'regular') {
+      eyebrow.innerText = "STEP 03 · Regular Members";
+      title.innerText = "정회원 등업 완료 명단";
+    } else {
+      eyebrow.innerText = "STEP 02 & STEP 03 · Members Status";
+      title.innerText = "회원 참여 및 등업 현황 명단";
+    }
+
+    renderMembersTable();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  function renderMembersTable() {
+    const tbody = document.getElementById("members-table-body");
+    let members = getMembers();
+    const currentUser = getCurrentUser();
+
+    if (activeMemberFilter === 'three') {
+      members = members.filter(m => m.status === 'three');
+    } else if (activeMemberFilter === 'regular') {
+      members = members.filter(m => m.status === 'regular');
+    }
+
+    if (members.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="6" style="text-align:center; padding:2rem; color:var(--muted);">
+            등록된 회원 명단이 없습니다. 우측 상단 버튼을 눌러 명단을 등록해주세요.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    tbody.innerHTML = members.map(m => `
+      <tr>
+        <td style="font-weight:600; color:var(--ink);">${m.name}</td>
+        <td>
+          <span class="role-badge ${m.status === 'regular' ? 'regular' : 'three-plus'}">
+            ${m.status === 'regular' ? '정회원' : '신입 회원'}
+          </span>
+        </td>
+        <td style="font-family:var(--f-mono);">${m.count}회</td>
+        <td>${m.recentHike || '-'}</td>
+        <td style="font-family:var(--f-mono); font-size:0.78rem;">${m.date}</td>
+        <td>
+          ${(currentUser && (currentUser === m.name || currentUser === 'ihiker')) ? `
+            <button class="delete-btn" onclick="deleteMember(${m.id})" title="명단 삭제">×</button>
+          ` : `<span style="color:var(--hairline); font-size:0.75rem;">-</span>`}
+        </td>
+      </tr>
+    `).join("");
+  }
+
+  window.deleteMember = function(id) {
+    if (!confirm("해당 회원을 명단에서 삭제하시겠습니까?")) return;
+    const members = getMembers().filter(m => m.id !== id);
+    saveMembers(members);
+    renderMembersTable();
+  };
+
+  const memberModal = document.getElementById("member-modal");
+  document.getElementById("open-member-modal-btn").addEventListener("click", () => {
+    if (activeMemberFilter === 'three') {
+      document.getElementById("member-status").value = 'three';
+    } else if (activeMemberFilter === 'regular') {
+      document.getElementById("member-status").value = 'regular';
+    }
+    const currentUser = getCurrentUser();
+    if (currentUser) {
+      document.getElementById("member-name").value = currentUser;
+    }
+    memberModal.showModal();
+  });
+  document.getElementById("close-member-modal-btn").addEventListener("click", () => memberModal.close());
+  document.getElementById("cancel-member-btn").addEventListener("click", () => memberModal.close());
+
+  document.getElementById("member-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const newMember = {
+      id: Date.now(),
+      name: document.getElementById("member-name").value.trim(),
+      status: document.getElementById("member-status").value,
+      count: parseInt(document.getElementById("member-count").value, 10) || 1,
+      recentHike: document.getElementById("member-recent-hike").value.trim(),
+      date: new Date().toISOString().split("T")[0],
+      memo: document.getElementById("member-memo").value.trim()
+    };
+
+    const members = getMembers();
+    members.unshift(newMember);
+    saveMembers(members);
+    renderMembersTable();
+    renderAuthNav();
+    renderReports();
+
+    document.getElementById("member-form").reset();
+    memberModal.close();
+  });
+
+  /* ── Intro Board View & Handlers ───────────────────────────────────── */
+  window.openIntroBoardView = function() {
+    document.getElementById("main-view").style.display = "none";
+    document.getElementById("hike-detail-view").style.display = "none";
+    document.getElementById("report-detail-view").style.display = "none";
+    document.getElementById("members-board-view").style.display = "none";
+    document.getElementById("intro-board-view").style.display = "block";
+    renderIntros();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  function renderIntros() {
+    const container = document.getElementById("intro-list-container");
+    const intros = getIntros();
+    const currentUser = getCurrentUser();
+
+    container.innerHTML = intros.map(item => `
+      <article class="intro-card">
+        <div class="intro-card-head">
+          <div class="intro-author-title">🌱 ${item.nickname}님의 가입 인사</div>
+          <div style="display:flex; align-items:center; gap:0.6rem;">
+            <div class="intro-meta-tags">
+              <span class="intro-tag">📍 ${item.location}</span>
+              <span class="intro-tag">👤 ${item.gender}</span>
+              <span class="intro-tag">🧭 ${item.channel}</span>
+            </div>
+            ${(currentUser && (currentUser === item.nickname || currentUser === 'ihiker')) ? `
+              <button class="delete-btn" onclick="deleteIntro(${item.id})" title="가입인사 삭제">×</button>
+            ` : ''}
+          </div>
+        </div>
+
+        <div class="intro-body">${item.bio}</div>
+
+        <div class="welcome-list">
+          <div style="font-family:var(--f-mono); font-size:0.75rem; color:#8fb3a2; font-weight:600; margin-bottom:0.2rem;">
+            환영 인사 (${item.welcomes ? item.welcomes.length : 0})
+          </div>
+          ${(!item.welcomes || item.welcomes.length === 0) ? `
+            <div style="font-size:0.84rem; color:#c3ccbf;">아직 환영 인사가 없습니다. 환영의 한마디를 남겨주세요!</div>
+          ` : item.welcomes.map(w => `
+            <div class="welcome-item">
+              <span><b class="welcome-author">${w.username}</b>: ${w.msg}</span>
+              ${(currentUser && (currentUser === w.username || currentUser === 'ihiker')) ? `
+                <button class="delete-btn" onclick="deleteWelcome(${item.id}, ${w.id})" title="환영인사 삭제">×</button>
+              ` : ''}
+            </div>
+          `).join('')}
+
+          ${currentUser ? `
+            <form class="welcome-input-row" onsubmit="handleWelcomeSubmit(event, ${item.id})">
+              <input type="text" placeholder="${currentUser}님으로 환영 인사 남기기..." required>
+              <button type="submit" class="btn btn-solid btn-sm">환영</button>
+            </form>
+          ` : `
+            <div class="welcome-notice-text">
+              <a onclick="openAuthModal(false)">로그인</a> 후 환영 인사를 남길 수 있습니다.
+            </div>
+          `}
+        </div>
+      </article>
+    `).join("");
+  }
+
+  window.handleWelcomeSubmit = function(e, introId) {
+    e.preventDefault();
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+      openAuthModal(false);
+      return;
+    }
+
+    const input = e.target.querySelector("input");
+    const msg = input.value.trim();
+    if (!msg) return;
+
+    const intros = getIntros();
+    const intro = intros.find(i => i.id === introId);
+    if (intro) {
+      if (!intro.welcomes) intro.welcomes = [];
+      intro.welcomes.push({
+        id: Date.now(),
+        username: currentUser,
+        msg: msg
+      });
+      saveIntros(intros);
+      renderIntros();
+    }
+  };
+
+  window.deleteWelcome = function(introId, welcomeId) {
+    const intros = getIntros();
+    const intro = intros.find(i => i.id === introId);
+    if (intro && intro.welcomes) {
+      intro.welcomes = intro.welcomes.filter(w => w.id !== welcomeId);
+      saveIntros(intros);
+      renderIntros();
+    }
+  };
+
+  window.deleteIntro = function(id) {
+    if (!confirm("가입 인사를 삭제하시겠습니까?")) return;
+    const intros = getIntros().filter(i => i.id !== id);
+    saveIntros(intros);
+    renderIntros();
+  };
+
+  const introModal = document.getElementById("intro-modal");
+  document.getElementById("open-intro-modal-btn").addEventListener("click", () => {
+    const currentUser = getCurrentUser();
+    if (currentUser) {
+      document.getElementById("intro-nickname").value = currentUser;
+    }
+    introModal.showModal();
+  });
+  document.getElementById("close-intro-modal-btn").addEventListener("click", () => introModal.close());
+  document.getElementById("cancel-intro-btn").addEventListener("click", () => introModal.close());
+
+  document.getElementById("intro-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const newIntro = {
+      id: Date.now(),
+      nickname: document.getElementById("intro-nickname").value.trim(),
+      location: document.getElementById("intro-location").value.trim(),
+      gender: document.getElementById("intro-gender").value,
+      channel: document.getElementById("intro-channel").value,
+      bio: document.getElementById("intro-bio").value.trim(),
+      date: new Date().toISOString().split("T")[0],
+      welcomes: []
+    };
+
+    const intros = getIntros();
+    intros.unshift(newIntro);
+    saveIntros(intros);
+    renderIntros();
+
+    document.getElementById("intro-form").reset();
+    introModal.close();
+  });
+
+  /* ── RSVP Handler ──────────────────────────────────────────────────── */
+  window.handleRsvpSubmit = function(e, hikeId) {
+    e.preventDefault();
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+      openAuthModal(false);
+      return;
+    }
+
+    const msgInput = document.getElementById("rsvp-msg");
+
+    const newRsvp = {
+      id: Date.now(),
+      username: currentUser,
+      msg: msgInput.value.trim() || "참가 신청합니다."
+    };
+
+    const hikes = getHikes();
+    const hike = hikes.find(h => h.id === hikeId);
+    if (hike) {
+      if (!hike.rsvps) hike.rsvps = [];
+      hike.rsvps.push(newRsvp);
+      saveHikes(hikes);
+      openHikeDetail(hikeId);
+      renderHikes();
+    }
+  };
+
+  window.deleteRsvp = function(hikeId, rsvpId) {
+    const currentUser = getCurrentUser();
+    const hikes = getHikes();
+    const hike = hikes.find(h => h.id === hikeId);
+    if (!hike || !hike.rsvps) return;
+
+    const rsvpItem = hike.rsvps.find(r => r.id === rsvpId);
+    if (!rsvpItem) return;
+
+    if (rsvpItem.username !== currentUser && currentUser !== 'ihiker') {
+      alert("본인이 작성한 댓글만 삭제할 수 있습니다.");
+      return;
+    }
+
+    if (!confirm("참가 신청 댓글을 삭제하시겠습니까?")) return;
+
+    hike.rsvps = hike.rsvps.filter(r => r.id !== rsvpId);
+    saveHikes(hikes);
+    openHikeDetail(hikeId);
+    renderHikes();
+  };
+
+  /* ── Hike Detail View ──────────────────────────────────────────────── */
   window.openHikeDetail = function(id) {
+    window.currentDetailHikeId = id;
     const hikes = getHikes();
     const hike = hikes.find(h => h.id === id);
     if (!hike) return;
@@ -1262,6 +2377,9 @@
     const gmapEmbedUrl = getGoogleMapsEmbed(hike.gmap || hike.name);
     const gmapDirectUrl = getGoogleMapsDirectUrl(hike.gmap || hike.name);
     const alltrailsEmbedUrl = getAllTrailsEmbed(hike.alltrails);
+
+    const rsvps = hike.rsvps || [];
+    const currentUser = getCurrentUser();
 
     detailContainer.innerHTML = `
       <div class="detail-header">
@@ -1302,7 +2420,7 @@
             ${gmapEmbedUrl ? `
               <iframe 
                 src="${gmapEmbedUrl}" 
-                loading="lazy"
+                loading="lazy" 
                 title="Google Maps Location"
                 referrerpolicy="no-referrer-when-downgrade"
                 sandbox="allow-scripts allow-same-origin allow-popups">
@@ -1342,26 +2460,92 @@
           ` : ''}
         </div>
       </div>
+
+      <!-- ── RSVP Section ── -->
+      <section class="rsvp-section">
+        <div class="rsvp-head">
+          <h3>참가 신청 및 댓글</h3>
+          <span class="rsvp-count-tag">현재 참가자 ${rsvps.length}명</span>
+        </div>
+
+        ${currentUser ? `
+          <form class="rsvp-form" onsubmit="handleRsvpSubmit(event, ${hike.id})">
+            <input type="text" id="rsvp-msg" placeholder="참가 메시지를 입력해 주세요 (예: 함께 걷겠습니다!)" required>
+            <div class="rsvp-form-foot">
+              <span style="font-family:var(--f-mono); font-size:0.8rem; color:var(--forest);">작성자: <b>${currentUser}</b></span>
+              <button type="submit" class="btn btn-solid btn-sm">참가 신청 댓글 달기</button>
+            </div>
+          </form>
+        ` : `
+          <div class="rsvp-login-notice">
+            <p>참가 신청 댓글을 작성하려면 로그인이 필요합니다.</p>
+            <button type="button" class="btn btn-solid btn-sm" onclick="openAuthModal(false)">로그인 / 회원가입하기</button>
+          </div>
+        `}
+
+        <div class="rsvp-list">
+          ${rsvps.length === 0 ? `
+            <div style="text-align:center; padding:1.5rem; color:var(--muted); font-size:0.88rem;">
+              아직 등록된 참가 신청이 없습니다. 첫 번째로 참가 댓글을 남겨보세요!
+            </div>
+          ` : rsvps.map(r => `
+            <div class="rsvp-item">
+              <div class="rsvp-item-head">
+                <span class="rsvp-author">${r.username}</span>
+                ${(currentUser && (r.username === currentUser || currentUser === 'ihiker')) ? `
+                  <button class="delete-btn" onclick="deleteRsvp(${hike.id}, ${r.id})" title="댓글 삭제">×</button>
+                ` : ''}
+              </div>
+              <div class="rsvp-msg">${r.msg}</div>
+            </div>
+          `).join('')}
+        </div>
+      </section>
     `;
 
     document.getElementById("main-view").style.display = "none";
     document.getElementById("hike-detail-view").style.display = "block";
     document.getElementById("report-detail-view").style.display = "none";
+    document.getElementById("intro-board-view").style.display = "none";
+    document.getElementById("members-board-view").style.display = "none";
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  /* ── Report Detail View (정회원 인증 확인 및 YouTube/Gallery 렌더링) ─ */
   window.openReportDetail = function(id) {
+    const currentUser = getCurrentUser();
+    if (!isRegularMember(currentUser)) {
+      alert("산행 후기 상세 내용은 [정회원]만 열람하실 수 있습니다.\n로그인 상태를 확인하시거나 정회원 등업 후 이용해 주세요.");
+      if (!currentUser) openAuthModal(false);
+      return;
+    }
+
     const reports = getReports();
     const rep = reports.find(r => r.id === id);
     if (!rep) return;
 
     const detailContainer = document.getElementById("report-detail-content");
+    const ytVideoId = extractYouTubeId(rep.youtube);
 
     detailContainer.innerHTML = `
       <div class="detail-header">
-        <div class="eyebrow">${rep.kind} · 기록자: ${rep.by}</div>
+        <div class="eyebrow">${rep.kind} · 기록자: ${rep.by} (🔒 정회원 전용)</div>
         <h2 class="detail-title">${rep.title}</h2>
       </div>
+
+      ${ytVideoId ? `
+        <div>
+          <h4 style="font-family:var(--f-display); margin-bottom:0.6rem;">🎬 산행 영상 (YouTube)</h4>
+          <div class="video-container">
+            <iframe 
+              src="https://www.youtube.com/embed/${ytVideoId}" 
+              title="YouTube video player" 
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+              allowfullscreen>
+            </iframe>
+          </div>
+        </div>
+      ` : ''}
 
       <div class="report-body-text">${rep.content}</div>
 
@@ -1382,6 +2566,8 @@
     document.getElementById("main-view").style.display = "none";
     document.getElementById("hike-detail-view").style.display = "none";
     document.getElementById("report-detail-view").style.display = "block";
+    document.getElementById("intro-board-view").style.display = "none";
+    document.getElementById("members-board-view").style.display = "none";
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -1431,34 +2617,38 @@
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
     const paginatedHikes = hikes.slice(startIndex, startIndex + ITEMS_PER_PAGE);
     
-    container.innerHTML = paginatedHikes.map(h => `
-      <article class="hike">
-        <div class="when">
-          ${h.date}<small>${h.day || ""}</small>
-          ${h.time ? `<span class="time">${h.time}</span>` : ''}
-        </div>
-        <div class="what">
-          <div class="name">
-            <button type="button" class="hike-title-link" onclick="openHikeDetail(${h.id})" title="상세 지도 및 정보 보기">
-              ${h.name}
-            </button>
-            <button class="delete-btn" onclick="deleteHike(${h.id})" title="일정 삭제">×</button>
+    container.innerHTML = paginatedHikes.map(h => {
+      const rsvpCount = (h.rsvps || []).length;
+      return `
+        <article class="hike">
+          <div class="when">
+            ${h.date}<small>${h.day || ""}</small>
+            ${h.time ? `<span class="time">${h.time}</span>` : ''}
           </div>
-          <div class="meta">
-            <span>${h.dist}</span>
-            <span>${h.gain}</span>
-            <span class="grade" title="난이도 ${h.grade}">
-              <i class="${h.grade >= 1 ? 'on' : ''}"></i>
-              <i class="${h.grade >= 2 ? 'on' : ''}"></i>
-              <i class="${h.grade >= 3 ? 'on' : ''}"></i>
-            </span>
-            <span class="host">${h.host}</span>
-            ${h.notes ? `<span>${h.notes}</span>` : ''}
+          <div class="what">
+            <div class="name">
+              <button type="button" class="hike-title-link" onclick="openHikeDetail(${h.id})" title="상세 지도 및 참가 신청하기">
+                ${h.name}
+              </button>
+              <button class="delete-btn" onclick="deleteHike(${h.id})" title="일정 삭제">×</button>
+            </div>
+            <div class="meta">
+              <span>${h.dist}</span>
+              <span>${h.gain}</span>
+              <span class="grade" title="난이도 ${h.grade}">
+                <i class="${h.grade >= 1 ? 'on' : ''}"></i>
+                <i class="${h.grade >= 2 ? 'on' : ''}"></i>
+                <i class="${h.grade >= 3 ? 'on' : ''}"></i>
+              </span>
+              <span class="host">${h.host}</span>
+              <span class="rsvp-badge">참가 ${rsvpCount}명</span>
+              ${h.notes ? `<span>${h.notes}</span>` : ''}
+            </div>
           </div>
-        </div>
-        <div class="tag ${h.isHot ? 'hot' : ''}">${h.tag}</div>
-      </article>
-    `).join("");
+          <div class="tag ${h.isHot ? 'hot' : ''}">${h.tag}</div>
+        </article>
+      `;
+    }).join("");
 
     renderPagination(hikes.length);
   }
@@ -1470,26 +2660,47 @@
     renderHikes();
   };
 
-  /* ── Report Render ─────────────────────────────────────────────────── */
+  /* ── Report Render (썸네일 및 정회원 잠금 배지 표시) ─────────────── */
   function renderReports() {
     const container = document.getElementById("report-list");
     const reports = getReports();
+    const currentUser = getCurrentUser();
+    const isRegular = isRegularMember(currentUser);
 
-    container.innerHTML = reports.map(r => `
-      <article class="report">
-        <div class="kind">${r.kind}</div>
-        <h3>
-          <button type="button" class="report-title-link" onclick="openReportDetail(${r.id})" title="후기 전문 및 사진 보기">
-            ${r.title}
-          </button>
-        </h3>
-        <p>${r.content}</p>
-        <div class="by">
-          <span>${r.by}</span>
-          <button class="delete-btn" onclick="deleteReport(${r.id})" title="후기 삭제">×</button>
-        </div>
-      </article>
-    `).join("");
+    container.innerHTML = reports.map(r => {
+      const ytThumb = getYouTubeThumbnail(r.youtube);
+      const firstPhoto = (r.photos && r.photos.length > 0) ? r.photos[0] : null;
+      const displayThumb = ytThumb || firstPhoto || "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=600&q=80";
+
+      return `
+        <article class="report">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="kind">${r.kind}</div>
+            <span style="font-family:var(--f-mono); font-size:0.65rem; color:${isRegular ? 'var(--forest)' : 'var(--accent)'}; font-weight:500;">
+              ${isRegular ? '🔓 정회원 열람가능' : '🔒 정회원 전용'}
+            </span>
+          </div>
+
+          <div class="report-thumb" onclick="openReportDetail(${r.id})">
+            <img src="${displayThumb}" alt="후기 썸네일" loading="lazy">
+            ${ytThumb ? `<span class="play-badge">▶ YouTube</span>` : ''}
+          </div>
+
+          <h3>
+            <button type="button" class="report-title-link" onclick="openReportDetail(${r.id})" title="후기 전문 및 영상 보기">
+              ${r.title}
+            </button>
+          </h3>
+          <p>${isRegular ? r.content : '본 후기는 정회원 전용 콘텐츠입니다. 정회원 승급 후 영상과 상세 기록을 확인하실 수 있습니다.'}</p>
+          <div class="by">
+            <span>${r.by}</span>
+            ${(currentUser && (r.by.includes(currentUser) || currentUser === 'ihiker')) ? `
+              <button class="delete-btn" onclick="deleteReport(${r.id})" title="후기 삭제">×</button>
+            ` : ''}
+          </div>
+        </article>
+      `;
+    }).join("");
   }
 
   window.deleteReport = function(id) {
@@ -1499,7 +2710,7 @@
     renderReports();
   };
 
-  /* ── Modal Event Handlers ──────────────────────────────────────────── */
+  /* ── Modal Event Handlers ──────────────────────────────────── */
   const hikeModal = document.getElementById("hike-modal");
   document.getElementById("open-hike-modal-btn").addEventListener("click", () => hikeModal.showModal());
   document.getElementById("close-hike-modal-btn").addEventListener("click", () => hikeModal.close());
@@ -1524,7 +2735,8 @@
       notes: document.getElementById("hike-notes").value.trim(),
       gmap: document.getElementById("hike-gmap").value.trim(),
       alltrails: document.getElementById("hike-alltrails").value.trim(),
-      isHot: document.getElementById("hike-type").value === "특별"
+      isHot: document.getElementById("hike-type").value === "특별",
+      rsvps: []
     };
 
     const rawData = localStorage.getItem(STORAGE_HIKE_KEY);
@@ -1539,7 +2751,15 @@
   });
 
   const reportModal = document.getElementById("report-modal");
-  document.getElementById("open-report-modal-btn").addEventListener("click", () => reportModal.showModal());
+  document.getElementById("open-report-modal-btn").addEventListener("click", () => {
+    const currentUser = getCurrentUser();
+    if (!isRegularMember(currentUser)) {
+      alert("산행 후기 작성은 [정회원]만 가능합니다.");
+      if (!currentUser) openAuthModal(false);
+      return;
+    }
+    reportModal.showModal();
+  });
   document.getElementById("close-report-modal-btn").addEventListener("click", () => reportModal.close());
   document.getElementById("cancel-report-btn").addEventListener("click", () => reportModal.close());
 
@@ -1548,7 +2768,6 @@
     const files = document.getElementById("report-photos").files;
     const photoDataUrls = [];
 
-    // 업로드된 이미지 파일들을 Data URL(Base64)로 변환
     if (files && files.length > 0) {
       for (const file of files) {
         const dataUrl = await new Promise((resolve) => {
@@ -1564,6 +2783,7 @@
       id: Date.now(),
       kind: document.getElementById("report-kind").value,
       title: document.getElementById("report-title").value.trim(),
+      youtube: document.getElementById("report-youtube").value.trim(),
       content: document.getElementById("report-content").value.trim(),
       by: document.getElementById("report-by").value.trim(),
       photos: photoDataUrls
@@ -1581,6 +2801,7 @@
 
   /* ── App Initialization ────────────────────────────────────────────── */
   document.addEventListener("DOMContentLoaded", () => {
+    renderAuthNav();
     renderHikes();
     renderReports();
   });
