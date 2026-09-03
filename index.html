@@ -1376,7 +1376,7 @@
     <div class="detail-card" id="report-detail-content"></div>
   </main>
 
-  <!-- ── Intro Board View ──────────────────────────────────────────── -->
+  <!-- ── Intro Board View ──────────────────────────────────── -->
   <main id="intro-board-view" class="detail-view">
     <div class="back-nav">
       <button type="button" class="btn btn-ghost btn-sm" onclick="showMainView()">← 홈으로 돌아가기</button>
@@ -1904,6 +1904,7 @@
   let reportsState = [];
   let introsState = [];
   let membersState = [];
+  // 마스터 계정 기본값: ihiker / 12345
   let usersState = { "ihiker": "12345" };
 
   const STORAGE_CURRENT_USER = "ihiker_current_user";
@@ -1992,16 +1993,20 @@
       renderReports();
     });
 
-    // 5. 유저 정보
+    // 5. 유저 정보 (마스터 계정 ihiker / 12345 동기화)
     db.collection("users").onSnapshot(async (snapshot) => {
       if (snapshot.empty) {
-        await db.collection("users").doc("ihiker").set({ password: "123" });
+        await db.collection("users").doc("ihiker").set({ password: "12345" });
         return;
       }
-      usersState = {};
+      usersState = { "ihiker": "12345" };
       snapshot.forEach(doc => {
         usersState[doc.id] = doc.data().password;
       });
+      if (!usersState["ihiker"]) {
+        usersState["ihiker"] = "12345";
+        db.collection("users").doc("ihiker").set({ password: "12345" });
+      }
     });
   }
 
@@ -2026,10 +2031,12 @@
     const container = document.getElementById("auth-nav-container");
     const user = getCurrentUser();
     if (user) {
+      const isMaster = (user === "ihiker");
       const regularStatus = isRegularMember(user);
+      const badgeText = isMaster ? '관리자' : (regularStatus ? '정회원' : '신입');
       container.innerHTML = `
         <div class="user-badge">
-          <span>👤 ${user} <small style="color:${regularStatus ? 'var(--forest)' : 'var(--accent)'}; font-weight:600;">[${regularStatus ? '정회원' : '신입'}]</small></span>
+          <span>👤 ${user} <small style="color:${isMaster ? 'var(--accent)' : (regularStatus ? 'var(--forest)' : 'var(--muted)')}; font-weight:600;">[${badgeText}]</small></span>
           <button type="button" onclick="openChangePwdModal()" style="background:none; border:none; color:var(--forest); font-size:0.72rem; cursor:pointer; padding:0; text-decoration:underline;">비번변경</button>
           <button type="button" onclick="logout()" style="background:none; border:none; color:var(--muted); font-size:0.72rem; cursor:pointer; padding:0; text-decoration:underline;">로그아웃</button>
         </div>
@@ -2073,7 +2080,7 @@
     const errorMsg = document.getElementById("auth-error-msg");
 
     if (isSignupMode) {
-      if (usersState[username]) {
+      if (username === "ihiker" || usersState[username]) {
         errorMsg.innerText = "이미 존재하는 사용자 이름입니다.";
         errorMsg.style.display = "block";
         return;
@@ -2091,6 +2098,15 @@
       setCurrentUser(username);
       authModal.close();
     } else {
+      // 마스터 계정 ihiker / 12345 직통 승인
+      if (username === "ihiker" && password === "12345") {
+        setCurrentUser(username);
+        authModal.close();
+        renderHikes();
+        renderReports();
+        return;
+      }
+
       if (!usersState[username] || usersState[username] !== password) {
         errorMsg.innerText = "사용자 이름 또는 비밀번호가 일치하지 않습니다.";
         errorMsg.style.display = "block";
@@ -2098,6 +2114,8 @@
       }
       setCurrentUser(username);
       authModal.close();
+      renderHikes();
+      renderReports();
     }
   });
 
@@ -2131,7 +2149,8 @@
       return;
     }
 
-    await db.collection("users").doc(currentUser).update({ password: newPassword });
+    await db.collection("users").doc(currentUser).set({ password: newPassword });
+    usersState[currentUser] = newPassword;
     alert("비밀번호가 성공적으로 변경되었습니다.");
     changePwdModal.close();
   });
@@ -2470,6 +2489,7 @@
     const rsvpItem = hike.rsvps.find(r => r.id === rsvpId);
     if (!rsvpItem) return;
 
+    // 본인 댓글이거나 마스터 ihiker 관리자인 경우 삭제 가능
     if (rsvpItem.username !== currentUser && currentUser !== 'ihiker') {
       alert("본인이 작성한 댓글만 삭제할 수 있습니다.");
       return;
@@ -2497,6 +2517,7 @@
 
     const rsvps = hike.rsvps || [];
     const currentUser = getCurrentUser();
+    // 마스터 ihiker 이거나 일정 등록자인 경우 수정/삭제 버튼 활성화
     const canEditHike = currentUser && (currentUser === hike.host || currentUser === 'ihiker');
 
     actionsContainer.innerHTML = canEditHike ? `
@@ -2769,6 +2790,7 @@
       <div style="padding:1.5rem; text-align:center; color:var(--muted); font-size:0.85rem;">예정된 주말 정기 산행이 없습니다.</div>
     ` : paginatedRegular.map(h => {
       const rsvpCount = (h.rsvps || []).length;
+      // 마스터 계정(ihiker)이거나 해당 일정 host인 경우 메인 목록에서 수정/삭제 버튼 노출
       const canEdit = currentUser && (currentUser === h.host || currentUser === 'ihiker');
       return `
         <article class="hike">
