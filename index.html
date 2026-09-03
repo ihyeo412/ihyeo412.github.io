@@ -1002,10 +1002,11 @@
     align-items: center;
     justify-content: center;
     height: 100%;
-    padding: 1rem;
+    padding: 1.5rem;
     text-align: center;
     color: var(--muted);
     font-size: 0.85rem;
+    gap: 0.7rem;
   }
   .map-foot-link {
     font-family: var(--f-mono);
@@ -1376,7 +1377,7 @@
     <div class="detail-card" id="report-detail-content"></div>
   </main>
 
-  <!-- ── Intro Board View ──────────────────────────────────── -->
+  <!-- ── Intro Board View ──────────────────────────────────────────── -->
   <main id="intro-board-view" class="detail-view">
     <div class="back-nav">
       <button type="button" class="btn btn-ghost btn-sm" onclick="showMainView()">← 홈으로 돌아가기</button>
@@ -1626,8 +1627,8 @@
           <input type="text" id="hike-host" placeholder="예: ihiker" required>
         </label>
         <label class="full">
-          <span>만나는 장소 (주소 / 주차장명 / 좌표)</span>
-          <input type="text" id="hike-gmap" placeholder="예: Stanford Ave Staging Area Fremont CA" required>
+          <span>만나는 장소 (주소 / 주차장명 / 지도 퍼가기 URL)</span>
+          <input type="text" id="hike-gmap" placeholder="예: Stanford Ave Staging Area Fremont CA 또는 주소" required>
         </label>
         <label class="full">
           <span>AllTrails 트레일 URL (선택)</span>
@@ -1904,7 +1905,6 @@
   let reportsState = [];
   let introsState = [];
   let membersState = [];
-  // 마스터 계정 기본값: ihiker / 12345
   let usersState = { "ihiker": "12345" };
 
   const STORAGE_CURRENT_USER = "ihiker_current_user";
@@ -1993,7 +1993,7 @@
       renderReports();
     });
 
-    // 5. 유저 정보 (마스터 계정 ihiker / 12345 동기화)
+    // 5. 유저 정보
     db.collection("users").onSnapshot(async (snapshot) => {
       if (snapshot.empty) {
         await db.collection("users").doc("ihiker").set({ password: "12345" });
@@ -2098,7 +2098,6 @@
       setCurrentUser(username);
       authModal.close();
     } else {
-      // 마스터 계정 ihiker / 12345 직통 승인
       if (username === "ihiker" && password === "12345") {
         setCurrentUser(username);
         authModal.close();
@@ -2155,7 +2154,7 @@
     changePwdModal.close();
   });
 
-  /* ── Helpers ───────────────────────────────────────────────────────── */
+  /* ── Map & URL Helpers (단축 URL 및 iframe 퍼가기 태그 호환 개선) ───── */
   function extractYouTubeId(url) {
     if (!url) return null;
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
@@ -2171,7 +2170,11 @@
   function extractSearchQuery(input) {
     if (!input) return "";
     let clean = input.trim();
-    if (clean.includes("maps.google.com") || clean.includes("goo.gl")) {
+    if (clean.includes("<iframe") && clean.includes('src="')) {
+      const srcMatch = clean.match(/src="([^"]+)"/);
+      if (srcMatch) clean = srcMatch[1];
+    }
+    if (clean.includes("maps.google.com") || clean.includes("google.com/maps")) {
       const qMatch = clean.match(/[?&]q=([^&]+)/);
       if (qMatch) return decodeURIComponent(qMatch[1]);
       const placeMatch = clean.match(/\/place\/([^\/]+)/);
@@ -2180,16 +2183,43 @@
     return clean;
   }
 
+  // 단축 URL(maps.app.goo.gl 등) 입력 시 iframe 거부 에러 방지 및 Embed URL 생성
   function getGoogleMapsEmbed(input) {
-    const query = extractSearchQuery(input);
+    if (!input) return null;
+    let clean = input.trim();
+
+    // 사용자가 <iframe src="..."> 태그를 통째로 붙여넣은 경우 src만 추출
+    if (clean.includes("<iframe") && clean.includes('src="')) {
+      const srcMatch = clean.match(/src="([^"]+)"/);
+      if (srcMatch) clean = srcMatch[1];
+    }
+
+    // 이미 구글 공식 embed URL인 경우 그대로 반환
+    if (clean.includes("google.com/maps/embed")) {
+      return clean;
+    }
+
+    // maps.app.goo.gl 또는 goo.gl/maps 단축 URL은 iframe 보안 정책으로 차단되므로 embed 주소를 생성하지 않음
+    if (clean.includes("maps.app.goo.gl") || clean.includes("goo.gl/maps")) {
+      return null;
+    }
+
+    const query = extractSearchQuery(clean);
     if (!query) return null;
     return `https://maps.google.com/maps?q=${encodeURIComponent(query)}&t=&z=14&ie=UTF8&iwloc=&output=embed`;
   }
 
   function getGoogleMapsDirectUrl(input) {
-    const query = extractSearchQuery(input);
-    if (!query) return "#";
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+    if (!input) return "#";
+    let clean = input.trim();
+    if (clean.includes("<iframe") && clean.includes('src="')) {
+      const srcMatch = clean.match(/src="([^"]+)"/);
+      if (srcMatch) clean = srcMatch[1];
+    }
+    if (clean.startsWith("http://") || clean.startsWith("https://")) {
+      return clean;
+    }
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(clean)}`;
   }
 
   function getAllTrailsEmbed(url) {
@@ -2489,7 +2519,6 @@
     const rsvpItem = hike.rsvps.find(r => r.id === rsvpId);
     if (!rsvpItem) return;
 
-    // 본인 댓글이거나 마스터 ihiker 관리자인 경우 삭제 가능
     if (rsvpItem.username !== currentUser && currentUser !== 'ihiker') {
       alert("본인이 작성한 댓글만 삭제할 수 있습니다.");
       return;
@@ -2501,7 +2530,7 @@
     await db.collection("hikes").doc(hikeId).update({ rsvps: rsvps });
   };
 
-  /* ── Hike Detail View ─────────────────────────────────────────────── */
+  /* ── Hike Detail View (개선된 지도 렌더링 적용) ─────────────────────── */
   window.openHikeDetail = function(id) {
     window.currentDetailHikeId = id;
     const hike = hikesState.find(h => h.id === id);
@@ -2511,13 +2540,14 @@
     const actionsContainer = document.getElementById("hike-detail-actions");
     const gradeText = hike.grade === 1 ? "하 (초급)" : hike.grade === 2 ? "중 (중급)" : "상 (상급)";
 
-    const gmapEmbedUrl = getGoogleMapsEmbed(hike.gmap || hike.name);
-    const gmapDirectUrl = getGoogleMapsDirectUrl(hike.gmap || hike.name);
+    const rawGmap = hike.gmap || hike.name || "";
+    const isShortUrl = rawGmap.includes("maps.app.goo.gl") || rawGmap.includes("goo.gl/maps");
+    const gmapEmbedUrl = getGoogleMapsEmbed(rawGmap);
+    const gmapDirectUrl = getGoogleMapsDirectUrl(rawGmap);
     const alltrailsEmbedUrl = getAllTrailsEmbed(hike.alltrails);
 
     const rsvps = hike.rsvps || [];
     const currentUser = getCurrentUser();
-    // 마스터 ihiker 이거나 일정 등록자인 경우 수정/삭제 버튼 활성화
     const canEditHike = currentUser && (currentUser === hike.host || currentUser === 'ihiker');
 
     actionsContainer.innerHTML = canEditHike ? `
@@ -2561,7 +2591,7 @@
       <div class="map-box-grid">
         <div class="map-box">
           <h4>📍 만나는 장소 (Google Maps)</h4>
-          <p>출발 집결지 및 주차장 위치 (주소: <i>${hike.gmap || hike.name}</i>)</p>
+          <p>출발 집결지 및 주차장 위치 (주소/위치: <i>${rawGmap}</i>)</p>
           <div class="embed-container">
             ${gmapEmbedUrl ? `
               <iframe 
@@ -2571,9 +2601,16 @@
                 referrerpolicy="no-referrer-when-downgrade"
                 sandbox="allow-scripts allow-same-origin allow-popups">
               </iframe>
+            ` : (isShortUrl ? `
+              <div class="map-empty-box">
+                <p>구글 맵 단축 링크는 구글 보안 정책상 웹 화면 내부 임베드가 차단되어 있습니다.</p>
+                <a href="${gmapDirectUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-solid btn-sm">
+                  Google 지도 앱 / 웹에서 직접 열기 ↗
+                </a>
+              </div>
             ` : `
-              <div class="map-empty-box">등록된 Google 지도 위치 정보가 없습니다.</div>
-            `}
+              <div class="map-empty-box">등록된 지도 위치 정보가 없거나 표시할 수 없는 형식입니다.</div>
+            `)}
           </div>
           <a href="${gmapDirectUrl}" target="_blank" rel="noopener noreferrer" class="map-foot-link">
             Google Maps 앱에서 길찾기 및 내비게이션 실행 ↗
@@ -2790,7 +2827,6 @@
       <div style="padding:1.5rem; text-align:center; color:var(--muted); font-size:0.85rem;">예정된 주말 정기 산행이 없습니다.</div>
     ` : paginatedRegular.map(h => {
       const rsvpCount = (h.rsvps || []).length;
-      // 마스터 계정(ihiker)이거나 해당 일정 host인 경우 메인 목록에서 수정/삭제 버튼 노출
       const canEdit = currentUser && (currentUser === h.host || currentUser === 'ihiker');
       return `
         <article class="hike">
