@@ -1377,7 +1377,7 @@
     <div class="detail-card" id="report-detail-content"></div>
   </main>
 
-  <!-- ── Intro Board View ──────────────────────────────────────────── -->
+  <!-- ── Intro Board View ──────────────────────────────────── -->
   <main id="intro-board-view" class="detail-view">
     <div class="back-nav">
       <button type="button" class="btn btn-ghost btn-sm" onclick="showMainView()">← 홈으로 돌아가기</button>
@@ -1627,8 +1627,8 @@
           <input type="text" id="hike-host" placeholder="예: ihiker" required>
         </label>
         <label class="full">
-          <span>만나는 장소 (주소 / 주차장명 / 지도 퍼가기 URL)</span>
-          <input type="text" id="hike-gmap" placeholder="예: Stanford Ave Staging Area Fremont CA 또는 주소" required>
+          <span>만나는 장소 (구글 맵 링크 / 주소 / 주차장명)</span>
+          <input type="text" id="hike-gmap" placeholder="구글 맵 주소창 링크 또는 장소명을 입력하세요" required>
         </label>
         <label class="full">
           <span>AllTrails 트레일 URL (선택)</span>
@@ -2154,7 +2154,7 @@
     changePwdModal.close();
   });
 
-  /* ── Map & URL Helpers (단축 URL 및 iframe 퍼가기 태그 호환 개선) ───── */
+  /* ── Map & URL Helpers (URL 내 좌표 자동 추출 및 완벽 호환) ────────── */
   function extractYouTubeId(url) {
     if (!url) return null;
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
@@ -2167,39 +2167,53 @@
     return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
   }
 
+  // 링크 문자열에서 위도, 경도 좌표 또는 검색어 자동 추출
   function extractSearchQuery(input) {
     if (!input) return "";
     let clean = input.trim();
+
     if (clean.includes("<iframe") && clean.includes('src="')) {
       const srcMatch = clean.match(/src="([^"]+)"/);
       if (srcMatch) clean = srcMatch[1];
     }
+
+    // 1. 구글 맵 링크에 @37.xxx,-121.xxx 형태의 좌표가 포함된 경우 (가장 정확함)
+    const coordMatch = clean.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+    if (coordMatch) {
+      return `${coordMatch[1]},${coordMatch[2]}`;
+    }
+
+    // 2. !3d위도!4d경도 형태의 embed 파라미터가 포함된 경우
+    const paramMatch = clean.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+    if (paramMatch) {
+      return `${paramMatch[1]},${paramMatch[2]}`;
+    }
+
+    // 3. ?q=좌표 또는 검색어 형태
     if (clean.includes("maps.google.com") || clean.includes("google.com/maps")) {
       const qMatch = clean.match(/[?&]q=([^&]+)/);
       if (qMatch) return decodeURIComponent(qMatch[1]);
       const placeMatch = clean.match(/\/place\/([^\/]+)/);
       if (placeMatch) return decodeURIComponent(placeMatch[1].replace(/\+/g, " "));
     }
+
     return clean;
   }
 
-  // 단축 URL(maps.app.goo.gl 등) 입력 시 iframe 거부 에러 방지 및 Embed URL 생성
   function getGoogleMapsEmbed(input) {
     if (!input) return null;
     let clean = input.trim();
 
-    // 사용자가 <iframe src="..."> 태그를 통째로 붙여넣은 경우 src만 추출
     if (clean.includes("<iframe") && clean.includes('src="')) {
       const srcMatch = clean.match(/src="([^"]+)"/);
       if (srcMatch) clean = srcMatch[1];
     }
 
-    // 이미 구글 공식 embed URL인 경우 그대로 반환
     if (clean.includes("google.com/maps/embed")) {
       return clean;
     }
 
-    // maps.app.goo.gl 또는 goo.gl/maps 단축 URL은 iframe 보안 정책으로 차단되므로 embed 주소를 생성하지 않음
+    // 단축 링크 자체는 직접 iframe 임베드 불가
     if (clean.includes("maps.app.goo.gl") || clean.includes("goo.gl/maps")) {
       return null;
     }
@@ -2530,7 +2544,7 @@
     await db.collection("hikes").doc(hikeId).update({ rsvps: rsvps });
   };
 
-  /* ── Hike Detail View (개선된 지도 렌더링 적용) ─────────────────────── */
+  /* ── Hike Detail View ─────────────────────────────────────────────── */
   window.openHikeDetail = function(id) {
     window.currentDetailHikeId = id;
     const hike = hikesState.find(h => h.id === id);
@@ -2591,7 +2605,7 @@
       <div class="map-box-grid">
         <div class="map-box">
           <h4>📍 만나는 장소 (Google Maps)</h4>
-          <p>출발 집결지 및 주차장 위치 (주소/위치: <i>${rawGmap}</i>)</p>
+          <p>출발 집결지 및 주차장 위치</p>
           <div class="embed-container">
             ${gmapEmbedUrl ? `
               <iframe 
@@ -2603,9 +2617,9 @@
               </iframe>
             ` : (isShortUrl ? `
               <div class="map-empty-box">
-                <p>구글 맵 단축 링크는 구글 보안 정책상 웹 화면 내부 임베드가 차단되어 있습니다.</p>
+                <p>단축 링크(maps.app.goo.gl)는 웹 주소창에서 열어 이동한 뒤 <b>해당 페이지의 주소창 전체 링크</b>를 복사해 넣으면 지도가 즉시 뜹니다.</p>
                 <a href="${gmapDirectUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-solid btn-sm">
-                  Google 지도 앱 / 웹에서 직접 열기 ↗
+                  Google 지도 앱 / 웹에서 위치 열기 ↗
                 </a>
               </div>
             ` : `
