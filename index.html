@@ -25,6 +25,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@300;400;500;600&display=swap">
 
+<!-- ── Firebase SDK ────────────────────────────────────────────── -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
 <style>
   /* ── Reset ─────────────────────────────────────────────────────────── */
   *, *::before, *::after { box-sizing: border-box; }
@@ -74,7 +78,6 @@
     }
   }
 
-  /* ── Base ──────────────────────────────────────────────────────────── */
   body {
     background: var(--ground);
     color: var(--ink);
@@ -129,7 +132,6 @@
     color: var(--muted);
   }
 
-  /* ── Masthead ──────────────────────────────────────────────────────── */
   .masthead {
     display: flex;
     flex-wrap: wrap;
@@ -178,7 +180,6 @@
     border: 1px solid var(--hairline);
   }
 
-  /* ── Hero ──────────────────────────────────────────────────────────── */
   .hero { padding-block: clamp(2.6rem, 8vw, 4.6rem) 0; }
   .hero h1 {
     font-size: clamp(2.1rem, 6.4vw, 3.7rem);
@@ -218,7 +219,6 @@
   .btn-ghost:hover { border-color: var(--forest); }
   .btn-sm { padding: 0.35rem 0.75rem; font-size: 0.76rem; }
 
-  /* ── Ridgeline ─────────────────────────────────────────────────────── */
   .ridge {
     margin-top: clamp(2.2rem, 6vw, 3.4rem);
     position: relative;
@@ -243,7 +243,6 @@
   .ridge-labels span { white-space: nowrap; }
   .ridge-labels b { font-weight: 500; color: var(--ink-soft); }
 
-  /* ── Sections ──────────────────────────────────────────────────────── */
   .section { padding-block: clamp(3rem, 8vw, 4.8rem); }
   .section-head {
     display: flex;
@@ -265,7 +264,6 @@
     margin-left: auto;
   }
 
-  /* ── Schedule 2-Column Side-by-Side Layout ─────────────────────────── */
   .schedules-split {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -433,7 +431,6 @@
   .action-btn:hover { opacity: 1; color: var(--forest); }
   .action-btn.delete:hover { color: #d9534f; }
 
-  /* ── Pagination ────────────────────────────────────────────────────── */
   .pagination {
     display: flex;
     justify-content: center;
@@ -472,7 +469,6 @@
     cursor: not-allowed;
   }
 
-  /* ── Reports ───────────────────────────────────────────────────────── */
   .reports {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
@@ -564,7 +560,6 @@
     align-items: center;
   }
 
-  /* ── Detail View Page ──────────────────────────────────────────────── */
   .detail-view {
     display: none;
     padding-block: clamp(2rem, 5vw, 3.5rem);
@@ -620,7 +615,6 @@
     color: var(--ink);
   }
 
-  /* ── Table Styled Members List ─────────────────────────────────────── */
   .members-table-wrapper {
     overflow-x: auto;
     background: var(--ground);
@@ -671,7 +665,6 @@
     color: #fff;
   }
 
-  /* ── Rules Detail Page Style ───────────────────────────────────────── */
   .rules-detail-content {
     display: flex;
     flex-direction: column;
@@ -700,7 +693,6 @@
     line-height: 1.7;
   }
 
-  /* ── RSVP Comments Section ─────────────────────────────────────────── */
   .rsvp-section {
     border-top: 1px solid var(--hairline);
     padding-top: 1.8rem;
@@ -802,7 +794,6 @@
     line-height: 1.5;
   }
 
-  /* ── Introduction Cards (가입 인사) ────────────────────────────────── */
   .intro-cards {
     display: flex;
     flex-direction: column;
@@ -851,7 +842,6 @@
     white-space: pre-line;
   }
 
-  /* ── 환영인사 폰트 화이트 테마 ────────────────────────────────────── */
   .welcome-list {
     background: #1e2922;
     border-radius: var(--radius);
@@ -914,7 +904,6 @@
     cursor: pointer;
   }
 
-  /* ── YouTube Video Player Section ──────────────────────────────────── */
   .video-container {
     position: relative;
     width: 100%;
@@ -934,7 +923,6 @@
     border: 0;
   }
 
-  /* ── Photo Gallery ─────────────────────────────────────────────────── */
   .gallery-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
@@ -965,7 +953,6 @@
     white-space: pre-line;
   }
 
-  /* ── Embed Map Styles ──────────────────────────────────────────────── */
   .map-box-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
@@ -1032,7 +1019,6 @@
     margin-top: 0.2rem;
   }
 
-  /* ── Modal ─────────────────────────────────────────────────────────── */
   .modal {
     border: 1px solid var(--hairline);
     background: var(--surface);
@@ -1074,7 +1060,6 @@
   }
   .modal-foot { display: flex; justify-content: flex-end; gap: 0.6rem; margin-top: 0.5rem; }
 
-  /* ── Join Interactive Steps ────────────────────────────────────────── */
   .steps {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
@@ -1144,7 +1129,6 @@
     color: var(--muted);
   }
 
-  /* ── Footer ────────────────────────────────────────────────────────── */
   footer {
     border-top: 1px solid var(--hairline);
     padding-block: 2.6rem 3.4rem;
@@ -1190,7 +1174,7 @@
     </nav>
   </header>
 
-  <!-- ── Main View Container (홈 화면 전체) ────────────────────────── -->
+  <!-- ── Main View Container ──────────────────────────────────────── -->
   <div id="main-view">
     <section class="hero">
       <div class="eyebrow">San Francisco — Monterey · Tahoe · Yosemite</div>
@@ -1229,7 +1213,7 @@
       </div>
     </section>
 
-    <!-- ── Schedule Section (주말산행 / 특별산행 좌우 2단 배치) ─────────── -->
+    <!-- ── Schedule Section ────────────────────────────────────────── -->
     <section class="section" id="schedule">
       <div class="section-head">
         <h2>산행 일정</h2>
@@ -1240,7 +1224,6 @@
       </div>
 
       <div class="schedules-split">
-        <!-- 좌측: 주말 정기 산행 -->
         <div class="schedule-column">
           <div class="group-label">
             <h3>주말 정기 산행</h3>
@@ -1251,7 +1234,6 @@
           <nav class="pagination" id="regular-pagination" aria-label="주말 산행 페이지"></nav>
         </div>
 
-        <!-- 우측: 특별 산행 (백팩킹 / 원정) -->
         <div class="schedule-column">
           <div class="group-label">
             <h3>특별 / 백팩킹 산행</h3>
@@ -1264,7 +1246,7 @@
       </div>
     </section>
 
-    <!-- ── Reports Section (정회원 전용) ────────────────────────────── -->
+    <!-- ── Reports Section ─────────────────────────────────────────── -->
     <section class="section" id="reports">
       <div class="section-head">
         <h2>산행 후기</h2>
@@ -1277,7 +1259,7 @@
       <div class="reports" id="report-list"></div>
     </section>
 
-    <!-- ── Join Section (4단계 프로세스: STEP 01 회칙 ~ STEP 04 정회원) ── -->
+    <!-- ── Join Section ────────────────────────────────────────────── -->
     <section class="section" id="join">
       <div class="section-head">
         <h2>함께 하는 방법</h2>
@@ -1344,7 +1326,7 @@
     </section>
   </div>
 
-  <!-- ── Rules Detail View (STEP 01 회칙 / 동행 수칙 전용 페이지) ───── -->
+  <!-- ── Rules Detail View ────────────────────────────────────────── -->
   <main id="rules-detail-view" class="detail-view">
     <div class="back-nav">
       <button type="button" class="btn btn-ghost btn-sm" onclick="showMainView()">← 홈으로 돌아가기</button>
@@ -1360,17 +1342,14 @@
           <h4>🌲 1. 자연 보호 및 LNT(Leave No Trace) 실천</h4>
           <p>우리가 걷는 산과 들은 자연의 품입니다. 쓰레기는 반드시 되가져오며, 트레일을 벗어난 무분별한 훼손을 삼가고, 아름다운 자연환경을 있는 그대로 아끼고 보존합니다.</p>
         </div>
-
         <div class="rules-detail-item">
           <h4>🤝 2. 비영리성 및 상업적 목적 금지</h4>
           <p>ihiker는 순수한 열린 산악 커뮤니티입니다. 산악회를 개인의 상업적 영리 활동이나 금전적 거래, 특정 이익을 취하기 위한 수단으로 활용하는 것을 엄격히 금합니다.</p>
         </div>
-
         <div class="rules-detail-item">
           <h4>🛡️ 3. 상호 존중과 폭력 행위 무관용 원칙</h4>
           <p>모든 회원은 동등하고 소중한 동행자입니다. 회원 상호 간의 언어적 모욕, 비방, 차별적 발언 및 일체의 신체적 위력 행사는 즉시 제명 및 영구 퇴출 등 엄정하게 조치합니다.</p>
         </div>
-
         <div class="rules-detail-item">
           <h4>🕊️ 4. 건전한 사회 통념과 미풍양속 준수</h4>
           <p>모두가 안심하고 참여할 수 있는 건강한 모임을 지향합니다. 보편적인 사회적 상식과 도덕 관념을 벗어난 일탈 행위를 엄격히 지양하며, 건전하고 밝은 교류 문화를 함께 만들어갑니다.</p>
@@ -1379,7 +1358,7 @@
     </div>
   </main>
 
-  <!-- ── Hike Detail View (산행 상세 + 임베드 지도 + 참가신청 댓글) ──── -->
+  <!-- ── Hike Detail View ─────────────────────────────────────────── -->
   <main id="hike-detail-view" class="detail-view">
     <div class="back-nav">
       <button type="button" class="btn btn-ghost btn-sm" onclick="showMainView()">← 전체 일정으로 돌아가기</button>
@@ -1388,7 +1367,7 @@
     <div class="detail-card" id="hike-detail-content"></div>
   </main>
 
-  <!-- ── Report Detail View (산행 후기 상세 페이지 - YouTube & Gallery) ── -->
+  <!-- ── Report Detail View ───────────────────────────────────────── -->
   <main id="report-detail-view" class="detail-view">
     <div class="back-nav">
       <button type="button" class="btn btn-ghost btn-sm" onclick="showMainView()">← 후기 목록으로 돌아가기</button>
@@ -1397,7 +1376,7 @@
     <div class="detail-card" id="report-detail-content"></div>
   </main>
 
-  <!-- ── Intro Board View (가입 인사 전용 페이지) ───────────────────── -->
+  <!-- ── Intro Board View ──────────────────────────────────────────── -->
   <main id="intro-board-view" class="detail-view">
     <div class="back-nav">
       <button type="button" class="btn btn-ghost btn-sm" onclick="showMainView()">← 홈으로 돌아가기</button>
@@ -1415,7 +1394,7 @@
     </div>
   </main>
 
-  <!-- ── Members Board View (신입 회원 3회 참여 및 정회원 등업 명단) ──── -->
+  <!-- ── Members Board View ────────────────────────────────────────── -->
   <main id="members-board-view" class="detail-view">
     <div class="back-nav">
       <button type="button" class="btn btn-ghost btn-sm" onclick="showMainView()">← 홈으로 돌아가기</button>
@@ -1447,7 +1426,7 @@
     </div>
   </main>
 
-  <!-- ── Member Modal (회원 참여/정회원 등록 모달) ────────────────── -->
+  <!-- ── Member Modal ─────────────────────────────────────────────── -->
   <dialog id="member-modal" class="modal">
     <form id="member-form" method="dialog" class="modal-box">
       <div class="modal-head">
@@ -1488,7 +1467,7 @@
     </form>
   </dialog>
 
-  <!-- ── Intro Modal (가입 인사 작성 모달) ─────────────────────────── -->
+  <!-- ── Intro Modal ──────────────────────────────────────────────── -->
   <dialog id="intro-modal" class="modal">
     <form id="intro-form" method="dialog" class="modal-box">
       <div class="modal-head">
@@ -1535,7 +1514,7 @@
     </form>
   </dialog>
 
-  <!-- ── Auth Modal (로그인 / 회원가입) ────────────────────────────── -->
+  <!-- ── Auth Modal ───────────────────────────────────────────────── -->
   <dialog id="auth-modal" class="modal">
     <form id="auth-form" method="dialog" class="modal-box">
       <div class="modal-head">
@@ -1568,7 +1547,7 @@
     </form>
   </dialog>
 
-  <!-- ── Change Password Modal (비밀번호 변경) ──────────────────────── -->
+  <!-- ── Change Password Modal ─────────────────────────────────────── -->
   <dialog id="change-pwd-modal" class="modal">
     <form id="change-pwd-form" method="dialog" class="modal-box">
       <div class="modal-head">
@@ -1596,7 +1575,7 @@
     </form>
   </dialog>
 
-  <!-- ── Hike Modal (등록 및 수정 공용) ────────────────────────────── -->
+  <!-- ── Hike Modal ───────────────────────────────────────────────── -->
   <dialog id="hike-modal" class="modal">
     <form id="hike-form" method="dialog" class="modal-box">
       <input type="hidden" id="hike-edit-id" value="">
@@ -1667,7 +1646,7 @@
     </form>
   </dialog>
 
-  <!-- ── Report Modal (등록 및 수정 공용) ───────────────────────────── -->
+  <!-- ── Report Modal ──────────────────────────────────────────────── -->
   <dialog id="report-modal" class="modal">
     <form id="report-form" method="dialog" class="modal-box">
       <input type="hidden" id="report-edit-id" value="">
@@ -1726,10 +1705,25 @@
 </div>
 
 <script>
-  /* ── Initial Mock Data ─────────────────────────────────────────────── */
+  /* ── 1. Firebase Configuration & Initialization ────────────────────── */
+  const firebaseConfig = {
+    apiKey: "AIzaSyCgzB9hQNmALfrmb3RkYDZFEn7WRGgVif4",
+    authDomain: "ihiker-app.firebaseapp.com",
+    projectId: "ihiker-app",
+    storageBucket: "ihiker-app.firebasestorage.app",
+    messagingSenderId: "258207056893",
+    appId: "1:258207056893:web:c66da7230ad00ac556cf94",
+    measurementId: "G-585WF1J6Q7"
+  };
+
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
+  const db = firebase.firestore();
+
+  /* ── Default Seed Data ─────────────────────────────────────────────── */
   const defaultHikes = [
     { 
-      id: 1, 
       date: "09/12", 
       day: "토", 
       time: "08:30 AM",
@@ -1747,7 +1741,6 @@
       ]
     },
     { 
-      id: 2, 
       date: "09/13", 
       day: "일", 
       time: "08:30 AM",
@@ -1763,7 +1756,6 @@
       rsvps: []
     },
     { 
-      id: 3, 
       date: "09/19", 
       day: "토", 
       time: "09:00 AM",
@@ -1779,7 +1771,6 @@
       rsvps: []
     },
     { 
-      id: 4, 
       date: "09/26", 
       day: "토", 
       time: "08:30 AM",
@@ -1795,7 +1786,6 @@
       rsvps: []
     },
     { 
-      id: 5, 
       date: "09/27", 
       day: "일", 
       time: "08:30 AM",
@@ -1811,7 +1801,6 @@
       rsvps: []
     },
     { 
-      id: 6, 
       date: "09/03", 
       day: "목–일", 
       time: "06:00 AM",
@@ -1828,7 +1817,6 @@
       rsvps: []
     },
     { 
-      id: 7, 
       date: "10/09", 
       day: "금–일", 
       time: "07:00 AM",
@@ -1848,7 +1836,6 @@
 
   const defaultReports = [
     {
-      id: 1,
       kind: "백팩킹",
       title: "레이 레이크스 루프 3박 4일",
       youtube: "https://www.youtube.com/watch?v=ScMzIvxBSi4",
@@ -1860,7 +1847,6 @@
       ]
     },
     {
-      id: 2,
       kind: "주말 산행",
       title: "안 와 본 사람은 있어도 한 번만 온 사람은 없다",
       youtube: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
@@ -1871,7 +1857,6 @@
       ]
     },
     {
-      id: 3,
       kind: "백팩킹",
       title: "커시드럴 호수에서 클라우즈 레스트까지",
       youtube: "",
@@ -1885,7 +1870,6 @@
 
   const defaultIntros = [
     {
-      id: 1,
       nickname: "ihiker",
       location: "산호세 (San Jose)",
       gender: "남성",
@@ -1897,7 +1881,6 @@
       ]
     },
     {
-      id: 2,
       nickname: "클라우드",
       location: "서니베일 (Sunnyvale)",
       gender: "여성",
@@ -1911,18 +1894,19 @@
   ];
 
   const defaultMembers = [
-    { id: 1, name: "ihiker", status: "regular", count: 30, recentHike: "요세미티", date: "2026-01-01", memo: "관리자 / 정회원" },
-    { id: 2, name: "JB", status: "regular", count: 18, recentHike: "퍼리시마 크릭 레드우즈", date: "2026-05-12", memo: "정회원 / 운영진 안내" },
-    { id: 3, name: "청산", status: "three", count: 2, recentHike: "퍼리시마 크릭", date: "2026-08-28", memo: "신입 회원 (2회 완료 / 1회 남음)" },
-    { id: 4, name: "바람", status: "three", count: 3, recentHike: "후다트 카운티 파크", date: "2026-08-30", memo: "신입 회원 3회 달성 / 등업 대기" }
+    { name: "ihiker", status: "regular", count: 30, recentHike: "요세미티", date: "2026-01-01", memo: "관리자 / 정회원" },
+    { name: "JB", status: "regular", count: 18, recentHike: "퍼리시마 크릭 레드우즈", date: "2026-05-12", memo: "정회원 / 운영진 안내" },
+    { name: "청산", status: "three", count: 2, recentHike: "퍼리시마 크릭", date: "2026-08-28", memo: "신입 회원 (2회 완료 / 1회 남음)" },
+    { name: "바람", status: "three", count: 3, recentHike: "후다트 카운티 파크", date: "2026-08-30", memo: "신입 회원 3회 달성 / 등업 대기" }
   ];
 
-  const STORAGE_HIKE_KEY = "ihiker_schedules";
-  const STORAGE_REPORT_KEY = "ihiker_reports";
-  const STORAGE_AUTH_USERS = "ihiker_users";
+  let hikesState = [];
+  let reportsState = [];
+  let introsState = [];
+  let membersState = [];
+  let usersState = { "ihiker": "12345" };
+
   const STORAGE_CURRENT_USER = "ihiker_current_user";
-  const STORAGE_INTRO_KEY = "ihiker_intros";
-  const STORAGE_MEMBERS_KEY = "ihiker_members";
   const ITEMS_PER_PAGE = 4;
   let currentRegularPage = 1;
   let currentSpecialPage = 1;
@@ -1930,43 +1914,98 @@
   let activeMemberFilter = 'all';
 
   function parseHikeDate(dateStr) {
+    if (!dateStr) return 0;
     const match = dateStr.match(/^(\d{1,2})\/(\d{1,2})/);
     if (!match) return 0;
     return parseInt(match[1], 10) * 100 + parseInt(match[2], 10);
   }
 
-  const getHikes = () => {
-    const data = localStorage.getItem(STORAGE_HIKE_KEY);
-    const list = data ? JSON.parse(data) : defaultHikes;
-    return list.sort((a, b) => parseHikeDate(b.date) - parseHikeDate(a.date));
-  };
-  const saveHikes = (data) => localStorage.setItem(STORAGE_HIKE_KEY, JSON.stringify(data));
+  /* ── Real-Time Sync Setup ──────────────────────────────────────────── */
+  function initFirestoreSync() {
+    // 1. 산행 일정
+    db.collection("hikes").onSnapshot(async (snapshot) => {
+      if (snapshot.empty) {
+        for (const item of defaultHikes) {
+          await db.collection("hikes").add(item);
+        }
+        return;
+      }
+      hikesState = [];
+      snapshot.forEach(doc => {
+        hikesState.push({ id: doc.id, ...doc.data() });
+      });
+      hikesState.sort((a, b) => parseHikeDate(b.date) - parseHikeDate(a.date));
+      renderHikes();
+      if (window.currentDetailHikeId) {
+        openHikeDetail(window.currentDetailHikeId);
+      }
+    });
 
-  const getReports = () => {
-    const data = localStorage.getItem(STORAGE_REPORT_KEY);
-    return data ? JSON.parse(data) : defaultReports;
-  };
-  const saveReports = (data) => localStorage.setItem(STORAGE_REPORT_KEY, JSON.stringify(data));
+    // 2. 산행 후기
+    db.collection("reports").onSnapshot(async (snapshot) => {
+      if (snapshot.empty) {
+        for (const item of defaultReports) {
+          await db.collection("reports").add(item);
+        }
+        return;
+      }
+      reportsState = [];
+      snapshot.forEach(doc => {
+        reportsState.push({ id: doc.id, ...doc.data() });
+      });
+      renderReports();
+    });
 
-  const getIntros = () => {
-    const data = localStorage.getItem(STORAGE_INTRO_KEY);
-    return data ? JSON.parse(data) : defaultIntros;
-  };
-  const saveIntros = (data) => localStorage.setItem(STORAGE_INTRO_KEY, JSON.stringify(data));
+    // 3. 가입 인사
+    db.collection("intros").onSnapshot(async (snapshot) => {
+      if (snapshot.empty) {
+        for (const item of defaultIntros) {
+          await db.collection("intros").add(item);
+        }
+        return;
+      }
+      introsState = [];
+      snapshot.forEach(doc => {
+        introsState.push({ id: doc.id, ...doc.data() });
+      });
+      introsState.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+      if (document.getElementById("intro-board-view").style.display === "block") {
+        renderIntros();
+      }
+    });
 
-  const getMembers = () => {
-    const data = localStorage.getItem(STORAGE_MEMBERS_KEY);
-    return data ? JSON.parse(data) : defaultMembers;
-  };
-  const saveMembers = (data) => localStorage.setItem(STORAGE_MEMBERS_KEY, JSON.stringify(data));
+    // 4. 회원 명단
+    db.collection("members").onSnapshot(async (snapshot) => {
+      if (snapshot.empty) {
+        for (const item of defaultMembers) {
+          await db.collection("members").add(item);
+        }
+        return;
+      }
+      membersState = [];
+      snapshot.forEach(doc => {
+        membersState.push({ id: doc.id, ...doc.data() });
+      });
+      membersState.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+      renderMembersTable();
+      renderAuthNav();
+      renderReports();
+    });
 
-  /* ── User Auth & Regular Member Checking ───────────────────────────── */
-  const getUsers = () => {
-    const data = localStorage.getItem(STORAGE_AUTH_USERS);
-    return data ? JSON.parse(data) : { "ihiker": "12345" };
-  };
-  const saveUsers = (data) => localStorage.setItem(STORAGE_AUTH_USERS, JSON.stringify(data));
+    // 5. 유저 정보
+    db.collection("users").onSnapshot(async (snapshot) => {
+      if (snapshot.empty) {
+        await db.collection("users").doc("ihiker").set({ password: "123" });
+        return;
+      }
+      usersState = {};
+      snapshot.forEach(doc => {
+        usersState[doc.id] = doc.data().password;
+      });
+    });
+  }
 
+  /* ── User Session & Auth ───────────────────────────────────────────── */
   const getCurrentUser = () => localStorage.getItem(STORAGE_CURRENT_USER);
   const setCurrentUser = (username) => {
     if (username) {
@@ -1980,8 +2019,7 @@
   function isRegularMember(username) {
     if (!username) return false;
     if (username === "ihiker") return true;
-    const members = getMembers();
-    return members.some(m => m.name === username && m.status === "regular");
+    return membersState.some(m => m.name === username && m.status === "regular");
   }
 
   function renderAuthNav() {
@@ -2005,26 +2043,7 @@
 
   window.logout = function() {
     setCurrentUser(null);
-    const hikeView = document.getElementById("hike-detail-view");
-    if (hikeView.style.display === "block" && window.currentDetailHikeId) {
-      openHikeDetail(window.currentDetailHikeId);
-    }
-    const introView = document.getElementById("intro-board-view");
-    if (introView.style.display === "block") {
-      renderIntros();
-    }
-    const memView = document.getElementById("members-board-view");
-    if (memView.style.display === "block") {
-      renderMembersTable();
-    }
-    const rulesView = document.getElementById("rules-detail-view");
-    if (rulesView.style.display === "block") {
-      showMainView();
-    }
-    const reportDetailView = document.getElementById("report-detail-view");
-    if (reportDetailView.style.display === "block") {
-      showMainView();
-    }
+    showMainView();
     renderReports();
   };
 
@@ -2047,25 +2066,20 @@
     openAuthModal(!isSignupMode);
   });
 
-  document.getElementById("auth-form").addEventListener("submit", (e) => {
+  document.getElementById("auth-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const username = document.getElementById("auth-username").value.trim();
     const password = document.getElementById("auth-password").value.trim();
     const errorMsg = document.getElementById("auth-error-msg");
-    const users = getUsers();
 
     if (isSignupMode) {
-      if (users[username]) {
+      if (usersState[username]) {
         errorMsg.innerText = "이미 존재하는 사용자 이름입니다.";
         errorMsg.style.display = "block";
         return;
       }
-      users[username] = password;
-      saveUsers(users);
-
-      const members = getMembers();
-      members.push({
-        id: Date.now(),
+      await db.collection("users").doc(username).set({ password: password });
+      await db.collection("members").add({
         name: username,
         status: "three",
         count: 0,
@@ -2073,26 +2087,17 @@
         date: new Date().toISOString().split("T")[0],
         memo: "신규 가입 회원 (3회 참여 조건 대상)"
       });
-      saveMembers(members);
 
       setCurrentUser(username);
       authModal.close();
-      if (window.currentDetailHikeId) openHikeDetail(window.currentDetailHikeId);
-      if (document.getElementById("intro-board-view").style.display === "block") renderIntros();
-      if (document.getElementById("members-board-view").style.display === "block") renderMembersTable();
-      renderReports();
     } else {
-      if (!users[username] || users[username] !== password) {
+      if (!usersState[username] || usersState[username] !== password) {
         errorMsg.innerText = "사용자 이름 또는 비밀번호가 일치하지 않습니다.";
         errorMsg.style.display = "block";
         return;
       }
       setCurrentUser(username);
       authModal.close();
-      if (window.currentDetailHikeId) openHikeDetail(window.currentDetailHikeId);
-      if (document.getElementById("intro-board-view").style.display === "block") renderIntros();
-      if (document.getElementById("members-board-view").style.display === "block") renderMembersTable();
-      renderReports();
     }
   });
 
@@ -2107,33 +2112,31 @@
   document.getElementById("close-change-pwd-btn").addEventListener("click", () => changePwdModal.close());
   document.getElementById("cancel-change-pwd-btn").addEventListener("click", () => changePwdModal.close());
 
-  document.getElementById("change-pwd-form").addEventListener("submit", (e) => {
+  document.getElementById("change-pwd-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const currentUser = getCurrentUser();
     const currPassword = document.getElementById("curr-password").value.trim();
     const newPassword = document.getElementById("new-password").value.trim();
     const errorMsg = document.getElementById("change-pwd-error-msg");
-    const users = getUsers();
 
-    if (!currentUser || !users[currentUser]) {
+    if (!currentUser || !usersState[currentUser]) {
       errorMsg.innerText = "로그인 세션이 만료되었습니다. 다시 로그인해 주세요.";
       errorMsg.style.display = "block";
       return;
     }
 
-    if (users[currentUser] !== currPassword) {
+    if (usersState[currentUser] !== currPassword) {
       errorMsg.innerText = "현재 비밀번호가 일치하지 않습니다.";
       errorMsg.style.display = "block";
       return;
     }
 
-    users[currentUser] = newPassword;
-    saveUsers(users);
+    await db.collection("users").doc(currentUser).update({ password: newPassword });
     alert("비밀번호가 성공적으로 변경되었습니다.");
     changePwdModal.close();
   });
 
-  /* ── YouTube & Map Helpers ─────────────────────────────────────────── */
+  /* ── Helpers ───────────────────────────────────────────────────────── */
   function extractYouTubeId(url) {
     if (!url) return null;
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
@@ -2191,7 +2194,6 @@
     window.currentDetailHikeId = null;
   };
 
-  /* ── Rules Detail View (STEP 01) ───────────────────────────────────── */
   window.openRulesDetailView = function() {
     document.getElementById("main-view").style.display = "none";
     document.getElementById("hike-detail-view").style.display = "none";
@@ -2202,7 +2204,7 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  /* ── Members Board (STEP 03: 신입 회원 & STEP 04: 정회원) ──────────── */
+  /* ── Members Board ─────────────────────────────────────────────────── */
   window.openMembersBoardView = function(filter = 'all') {
     activeMemberFilter = filter;
     document.getElementById("main-view").style.display = "none";
@@ -2232,7 +2234,7 @@
 
   function renderMembersTable() {
     const tbody = document.getElementById("members-table-body");
-    let members = getMembers();
+    let members = [...membersState];
     const currentUser = getCurrentUser();
 
     if (activeMemberFilter === 'three') {
@@ -2265,18 +2267,16 @@
         <td style="font-family:var(--f-mono); font-size:0.78rem;">${m.date}</td>
         <td>
           ${(currentUser && (currentUser === m.name || currentUser === 'ihiker')) ? `
-            <button class="action-btn delete" onclick="deleteMember(${m.id})" title="명단 삭제">삭제</button>
+            <button class="action-btn delete" onclick="deleteMember('${m.id}')" title="명단 삭제">삭제</button>
           ` : `<span style="color:var(--hairline); font-size:0.75rem;">-</span>`}
         </td>
       </tr>
     `).join("");
   }
 
-  window.deleteMember = function(id) {
+  window.deleteMember = async function(id) {
     if (!confirm("해당 회원을 명단에서 삭제하시겠습니까?")) return;
-    const members = getMembers().filter(m => m.id !== id);
-    saveMembers(members);
-    renderMembersTable();
+    await db.collection("members").doc(id.toString()).delete();
   };
 
   const memberModal = document.getElementById("member-modal");
@@ -2295,10 +2295,9 @@
   document.getElementById("close-member-modal-btn").addEventListener("click", () => memberModal.close());
   document.getElementById("cancel-member-btn").addEventListener("click", () => memberModal.close());
 
-  document.getElementById("member-form").addEventListener("submit", (e) => {
+  document.getElementById("member-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const newMember = {
-      id: Date.now(),
       name: document.getElementById("member-name").value.trim(),
       status: document.getElementById("member-status").value,
       count: parseInt(document.getElementById("member-count").value, 10) || 1,
@@ -2307,18 +2306,12 @@
       memo: document.getElementById("member-memo").value.trim()
     };
 
-    const members = getMembers();
-    members.unshift(newMember);
-    saveMembers(members);
-    renderMembersTable();
-    renderAuthNav();
-    renderReports();
-
+    await db.collection("members").add(newMember);
     document.getElementById("member-form").reset();
     memberModal.close();
   });
 
-  /* ── Intro Board View & Handlers (STEP 02) ─────────────────────────── */
+  /* ── Intro Board View & Handlers ───────────────────────────────────── */
   window.openIntroBoardView = function() {
     document.getElementById("main-view").style.display = "none";
     document.getElementById("hike-detail-view").style.display = "none";
@@ -2332,10 +2325,9 @@
 
   function renderIntros() {
     const container = document.getElementById("intro-list-container");
-    const intros = getIntros();
     const currentUser = getCurrentUser();
 
-    container.innerHTML = intros.map(item => `
+    container.innerHTML = introsState.map(item => `
       <article class="intro-card">
         <div class="intro-card-head">
           <div class="intro-author-title">🌱 ${item.nickname}님의 가입 인사</div>
@@ -2346,7 +2338,7 @@
               <span class="intro-tag">🧭 ${item.channel}</span>
             </div>
             ${(currentUser && (currentUser === item.nickname || currentUser === 'ihiker')) ? `
-              <button class="action-btn delete" onclick="deleteIntro(${item.id})" title="가입인사 삭제">삭제</button>
+              <button class="action-btn delete" onclick="deleteIntro('${item.id}')" title="가입인사 삭제">삭제</button>
             ` : ''}
           </div>
         </div>
@@ -2363,13 +2355,13 @@
             <div class="welcome-item">
               <span><b class="welcome-author">${w.username}</b>: ${w.msg}</span>
               ${(currentUser && (currentUser === w.username || currentUser === 'ihiker')) ? `
-                <button class="action-btn delete" onclick="deleteWelcome(${item.id}, ${w.id})" title="환영인사 삭제">×</button>
+                <button class="action-btn delete" onclick="deleteWelcome('${item.id}', ${w.id})" title="환영인사 삭제">×</button>
               ` : ''}
             </div>
           `).join('')}
 
           ${currentUser ? `
-            <form class="welcome-input-row" onsubmit="handleWelcomeSubmit(event, ${item.id})">
+            <form class="welcome-input-row" onsubmit="handleWelcomeSubmit(event, '${item.id}')">
               <input type="text" placeholder="${currentUser}님으로 환영 인사 남기기..." required>
               <button type="submit" class="btn btn-solid btn-sm">환영</button>
             </form>
@@ -2383,7 +2375,7 @@
     `).join("");
   }
 
-  window.handleWelcomeSubmit = function(e, introId) {
+  window.handleWelcomeSubmit = async function(e, introId) {
     e.preventDefault();
     const currentUser = getCurrentUser();
     if (!currentUser) {
@@ -2395,35 +2387,29 @@
     const msg = input.value.trim();
     if (!msg) return;
 
-    const intros = getIntros();
-    const intro = intros.find(i => i.id === introId);
+    const intro = introsState.find(i => i.id === introId);
     if (intro) {
-      if (!intro.welcomes) intro.welcomes = [];
-      intro.welcomes.push({
+      const welcomes = intro.welcomes || [];
+      welcomes.push({
         id: Date.now(),
         username: currentUser,
         msg: msg
       });
-      saveIntros(intros);
-      renderIntros();
+      await db.collection("intros").doc(introId).update({ welcomes: welcomes });
     }
   };
 
-  window.deleteWelcome = function(introId, welcomeId) {
-    const intros = getIntros();
-    const intro = intros.find(i => i.id === introId);
+  window.deleteWelcome = async function(introId, welcomeId) {
+    const intro = introsState.find(i => i.id === introId);
     if (intro && intro.welcomes) {
-      intro.welcomes = intro.welcomes.filter(w => w.id !== welcomeId);
-      saveIntros(intros);
-      renderIntros();
+      const welcomes = intro.welcomes.filter(w => w.id !== welcomeId);
+      await db.collection("intros").doc(introId).update({ welcomes: welcomes });
     }
   };
 
-  window.deleteIntro = function(id) {
+  window.deleteIntro = async function(id) {
     if (!confirm("가입 인사를 삭제하시겠습니까?")) return;
-    const intros = getIntros().filter(i => i.id !== id);
-    saveIntros(intros);
-    renderIntros();
+    await db.collection("intros").doc(id).delete();
   };
 
   const introModal = document.getElementById("intro-modal");
@@ -2437,10 +2423,9 @@
   document.getElementById("close-intro-modal-btn").addEventListener("click", () => introModal.close());
   document.getElementById("cancel-intro-btn").addEventListener("click", () => introModal.close());
 
-  document.getElementById("intro-form").addEventListener("submit", (e) => {
+  document.getElementById("intro-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const newIntro = {
-      id: Date.now(),
       nickname: document.getElementById("intro-nickname").value.trim(),
       location: document.getElementById("intro-location").value.trim(),
       gender: document.getElementById("intro-gender").value,
@@ -2450,17 +2435,13 @@
       welcomes: []
     };
 
-    const intros = getIntros();
-    intros.unshift(newIntro);
-    saveIntros(intros);
-    renderIntros();
-
+    await db.collection("intros").add(newIntro);
     document.getElementById("intro-form").reset();
     introModal.close();
   });
 
   /* ── RSVP Handler ──────────────────────────────────────────────────── */
-  window.handleRsvpSubmit = function(e, hikeId) {
+  window.handleRsvpSubmit = async function(e, hikeId) {
     e.preventDefault();
     const currentUser = getCurrentUser();
     if (!currentUser) {
@@ -2469,28 +2450,21 @@
     }
 
     const msgInput = document.getElementById("rsvp-msg");
-
-    const newRsvp = {
-      id: Date.now(),
-      username: currentUser,
-      msg: msgInput.value.trim() || "참가 신청합니다."
-    };
-
-    const hikes = getHikes();
-    const hike = hikes.find(h => h.id === hikeId);
+    const hike = hikesState.find(h => h.id === hikeId);
     if (hike) {
-      if (!hike.rsvps) hike.rsvps = [];
-      hike.rsvps.push(newRsvp);
-      saveHikes(hikes);
-      openHikeDetail(hikeId);
-      renderHikes();
+      const rsvps = hike.rsvps || [];
+      rsvps.push({
+        id: Date.now(),
+        username: currentUser,
+        msg: msgInput.value.trim() || "참가 신청합니다."
+      });
+      await db.collection("hikes").doc(hikeId).update({ rsvps: rsvps });
     }
   };
 
-  window.deleteRsvp = function(hikeId, rsvpId) {
+  window.deleteRsvp = async function(hikeId, rsvpId) {
     const currentUser = getCurrentUser();
-    const hikes = getHikes();
-    const hike = hikes.find(h => h.id === hikeId);
+    const hike = hikesState.find(h => h.id === hikeId);
     if (!hike || !hike.rsvps) return;
 
     const rsvpItem = hike.rsvps.find(r => r.id === rsvpId);
@@ -2503,17 +2477,14 @@
 
     if (!confirm("참가 신청 댓글을 삭제하시겠습니까?")) return;
 
-    hike.rsvps = hike.rsvps.filter(r => r.id !== rsvpId);
-    saveHikes(hikes);
-    openHikeDetail(hikeId);
-    renderHikes();
+    const rsvps = hike.rsvps.filter(r => r.id !== rsvpId);
+    await db.collection("hikes").doc(hikeId).update({ rsvps: rsvps });
   };
 
-  /* ── Hike Detail View (편집 버튼 포함) ─────────────────────────────── */
+  /* ── Hike Detail View ─────────────────────────────────────────────── */
   window.openHikeDetail = function(id) {
     window.currentDetailHikeId = id;
-    const hikes = getHikes();
-    const hike = hikes.find(h => h.id === id);
+    const hike = hikesState.find(h => h.id === id);
     if (!hike) return;
 
     const detailContainer = document.getElementById("hike-detail-content");
@@ -2530,8 +2501,8 @@
 
     actionsContainer.innerHTML = canEditHike ? `
       <div style="display:flex; gap:0.5rem;">
-        <button type="button" class="btn btn-ghost btn-sm" onclick="openEditHikeModal(${hike.id})">✏️ 일정 수정</button>
-        <button type="button" class="btn btn-ghost btn-sm" onclick="deleteHikeAndBack(${hike.id})">🗑️ 삭제</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="openEditHikeModal('${hike.id}')">✏️ 일정 수정</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="deleteHikeAndBack('${hike.id}')">🗑️ 삭제</button>
       </div>
     ` : '';
 
@@ -2615,7 +2586,6 @@
         </div>
       </div>
 
-      <!-- ── RSVP Section ── -->
       <section class="rsvp-section">
         <div class="rsvp-head">
           <h3>참가 신청 및 댓글</h3>
@@ -2623,7 +2593,7 @@
         </div>
 
         ${currentUser ? `
-          <form class="rsvp-form" onsubmit="handleRsvpSubmit(event, ${hike.id})">
+          <form class="rsvp-form" onsubmit="handleRsvpSubmit(event, '${hike.id}')">
             <input type="text" id="rsvp-msg" placeholder="참가 메시지를 입력해 주세요 (예: 함께 걷겠습니다!)" required>
             <div class="rsvp-form-foot">
               <span style="font-family:var(--f-mono); font-size:0.8rem; color:var(--forest);">작성자: <b>${currentUser}</b></span>
@@ -2647,7 +2617,7 @@
               <div class="rsvp-item-head">
                 <span class="rsvp-author">${r.username}</span>
                 ${(currentUser && (r.username === currentUser || currentUser === 'ihiker')) ? `
-                  <button class="action-btn delete" onclick="deleteRsvp(${hike.id}, ${r.id})" title="댓글 삭제">×</button>
+                  <button class="action-btn delete" onclick="deleteRsvp('${hike.id}', ${r.id})" title="댓글 삭제">×</button>
                 ` : ''}
               </div>
               <div class="rsvp-msg">${r.msg}</div>
@@ -2666,11 +2636,9 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  window.deleteHikeAndBack = function(id) {
+  window.deleteHikeAndBack = async function(id) {
     if (!confirm("해당 산행 일정을 삭제하시겠습니까?")) return;
-    const hikes = getHikes().filter(item => item.id !== id);
-    saveHikes(hikes);
-    renderHikes();
+    await db.collection("hikes").doc(id).delete();
     showMainView();
   };
 
@@ -2683,8 +2651,7 @@
       return;
     }
 
-    const reports = getReports();
-    const rep = reports.find(r => r.id === id);
+    const rep = reportsState.find(r => r.id === id);
     if (!rep) return;
 
     const detailContainer = document.getElementById("report-detail-content");
@@ -2694,8 +2661,8 @@
 
     actionsContainer.innerHTML = canEditReport ? `
       <div style="display:flex; gap:0.5rem;">
-        <button type="button" class="btn btn-ghost btn-sm" onclick="openEditReportModal(${rep.id})">✏️ 후기 수정</button>
-        <button type="button" class="btn btn-ghost btn-sm" onclick="deleteReportAndBack(${rep.id})">🗑️ 삭제</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="openEditReportModal('${rep.id}')">✏️ 후기 수정</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="deleteReportAndBack('${rep.id}')">🗑️ 삭제</button>
       </div>
     ` : '';
 
@@ -2744,11 +2711,9 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  window.deleteReportAndBack = function(id) {
+  window.deleteReportAndBack = async function(id) {
     if (!confirm("해당 산행 후기를 삭제하시겠습니까?")) return;
-    const reports = getReports().filter(item => item.id !== id);
-    saveReports(reports);
-    renderReports();
+    await db.collection("reports").doc(id).delete();
     showMainView();
   };
 
@@ -2790,11 +2755,10 @@
   };
 
   function renderHikes() {
-    const allHikes = getHikes();
     const currentUser = getCurrentUser();
     
     // 1. 주말 정기 산행
-    const regularHikes = allHikes.filter(h => h.tag !== '특별');
+    const regularHikes = hikesState.filter(h => h.tag !== '특별');
     const regularContainer = document.getElementById("regular-hike-list");
     const totalRegularPages = Math.ceil(regularHikes.length / ITEMS_PER_PAGE) || 1;
     if (currentRegularPage > totalRegularPages) currentRegularPage = totalRegularPages;
@@ -2814,12 +2778,12 @@
           </div>
           <div class="what">
             <div class="name">
-              <button type="button" class="hike-title-link" onclick="openHikeDetail(${h.id})" title="상세 지도 및 참가 신청하기">
+              <button type="button" class="hike-title-link" onclick="openHikeDetail('${h.id}')" title="상세 지도 및 참가 신청하기">
                 ${h.name}
               </button>
               ${canEdit ? `
-                <button class="action-btn" onclick="openEditHikeModal(${h.id})" title="수정">수정</button>
-                <button class="action-btn delete" onclick="deleteHike(${h.id})" title="삭제">×</button>
+                <button class="action-btn" onclick="openEditHikeModal('${h.id}')" title="수정">수정</button>
+                <button class="action-btn delete" onclick="deleteHike('${h.id}')" title="삭제">×</button>
               ` : ''}
             </div>
             <div class="meta">
@@ -2843,7 +2807,7 @@
     renderPagination(regularHikes.length, currentRegularPage, "regular-pagination", "changeRegularPage");
 
     // 2. 특별 / 백팩킹 산행
-    const specialHikes = allHikes.filter(h => h.tag === '특별');
+    const specialHikes = hikesState.filter(h => h.tag === '특별');
     const specialContainer = document.getElementById("special-hike-list");
     const totalSpecialPages = Math.ceil(specialHikes.length / ITEMS_PER_PAGE) || 1;
     if (currentSpecialPage > totalSpecialPages) currentSpecialPage = totalSpecialPages;
@@ -2863,12 +2827,12 @@
           </div>
           <div class="what">
             <div class="name">
-              <button type="button" class="hike-title-link" onclick="openHikeDetail(${h.id})" title="상세 지도 및 참가 신청하기">
+              <button type="button" class="hike-title-link" onclick="openHikeDetail('${h.id}')" title="상세 지도 및 참가 신청하기">
                 ${h.name}
               </button>
               ${canEdit ? `
-                <button class="action-btn" onclick="openEditHikeModal(${h.id})" title="수정">수정</button>
-                <button class="action-btn delete" onclick="deleteHike(${h.id})" title="삭제">×</button>
+                <button class="action-btn" onclick="openEditHikeModal('${h.id}')" title="수정">수정</button>
+                <button class="action-btn delete" onclick="deleteHike('${h.id}')" title="삭제">×</button>
               ` : ''}
             </div>
             <div class="meta">
@@ -2892,21 +2856,18 @@
     renderPagination(specialHikes.length, currentSpecialPage, "special-pagination", "changeSpecialPage");
   }
 
-  window.deleteHike = function(id) {
+  window.deleteHike = async function(id) {
     if (!confirm("해당 산행 일정을 삭제하시겠습니까?")) return;
-    const hikes = getHikes().filter(item => item.id !== id);
-    saveHikes(hikes);
-    renderHikes();
+    await db.collection("hikes").doc(id).delete();
   };
 
   /* ── Report Render ─────────────────────────────────────────────────── */
   function renderReports() {
     const container = document.getElementById("report-list");
-    const reports = getReports();
     const currentUser = getCurrentUser();
     const isRegular = isRegularMember(currentUser);
 
-    container.innerHTML = reports.map(r => {
+    container.innerHTML = reportsState.map(r => {
       const ytThumb = getYouTubeThumbnail(r.youtube);
       const firstPhoto = (r.photos && r.photos.length > 0) ? r.photos[0] : null;
       const displayThumb = ytThumb || firstPhoto || "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=600&q=80";
@@ -2921,13 +2882,13 @@
             </span>
           </div>
 
-          <div class="report-thumb" onclick="openReportDetail(${r.id})">
+          <div class="report-thumb" onclick="openReportDetail('${r.id}')">
             <img src="${displayThumb}" alt="후기 썸네일" loading="lazy">
             ${ytThumb ? `<span class="play-badge">▶ YouTube</span>` : ''}
           </div>
 
           <h3>
-            <button type="button" class="report-title-link" onclick="openReportDetail(${r.id})" title="후기 전문 및 영상 보기">
+            <button type="button" class="report-title-link" onclick="openReportDetail('${r.id}')" title="후기 전문 및 영상 보기">
               ${r.title}
             </button>
           </h3>
@@ -2936,8 +2897,8 @@
             <span>${r.by}</span>
             ${canEdit ? `
               <div style="display:flex; gap:0.25rem;">
-                <button class="action-btn" onclick="openEditReportModal(${r.id})" title="수정">수정</button>
-                <button class="action-btn delete" onclick="deleteReport(${r.id})" title="후기 삭제">×</button>
+                <button class="action-btn" onclick="openEditReportModal('${r.id}')" title="수정">수정</button>
+                <button class="action-btn delete" onclick="deleteReport('${r.id}')" title="후기 삭제">×</button>
               </div>
             ` : ''}
           </div>
@@ -2946,11 +2907,9 @@
     }).join("");
   }
 
-  window.deleteReport = function(id) {
+  window.deleteReport = async function(id) {
     if (!confirm("해당 산행 후기를 삭제하시겠습니까?")) return;
-    const reports = getReports().filter(item => item.id !== id);
-    saveReports(reports);
-    renderReports();
+    await db.collection("reports").doc(id).delete();
   };
 
   /* ── Hike Add & Edit Modal Handlers ────────────────────────────────── */
@@ -2967,8 +2926,7 @@
   });
 
   window.openEditHikeModal = function(id) {
-    const hikes = getHikes();
-    const hike = hikes.find(h => h.id === id);
+    const hike = hikesState.find(h => h.id === id);
     if (!hike) return;
 
     document.getElementById("hike-edit-id").value = hike.id;
@@ -2993,65 +2951,35 @@
   document.getElementById("close-hike-modal-btn").addEventListener("click", () => hikeModal.close());
   document.getElementById("cancel-hike-btn").addEventListener("click", () => hikeModal.close());
 
-  document.getElementById("hike-form").addEventListener("submit", (e) => {
+  document.getElementById("hike-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const editId = document.getElementById("hike-edit-id").value;
     const rawDate = document.getElementById("hike-date").value.trim();
     const dateMatch = rawDate.match(/^([^()]+)(?:\((.*)\))?$/);
 
-    const rawData = localStorage.getItem(STORAGE_HIKE_KEY);
-    let hikes = rawData ? JSON.parse(rawData) : defaultHikes;
+    const hikeData = {
+      date: dateMatch ? dateMatch[1].trim() : rawDate,
+      day: dateMatch && dateMatch[2] ? dateMatch[2].trim() : "",
+      time: document.getElementById("hike-time").value.trim(),
+      name: document.getElementById("hike-title").value.trim(),
+      dist: document.getElementById("hike-dist").value.trim(),
+      gain: document.getElementById("hike-gain").value.trim(),
+      grade: Number(document.getElementById("hike-grade").value),
+      host: document.getElementById("hike-host").value.trim(),
+      tag: document.getElementById("hike-type").value,
+      notes: document.getElementById("hike-notes").value.trim(),
+      gmap: document.getElementById("hike-gmap").value.trim(),
+      alltrails: document.getElementById("hike-alltrails").value.trim(),
+      isHot: document.getElementById("hike-type").value === "특별"
+    };
 
     if (editId) {
-      const hikeIdNum = Number(editId);
-      hikes = hikes.map(h => {
-        if (h.id === hikeIdNum) {
-          return {
-            ...h,
-            date: dateMatch ? dateMatch[1].trim() : rawDate,
-            day: dateMatch && dateMatch[2] ? dateMatch[2].trim() : "",
-            time: document.getElementById("hike-time").value.trim(),
-            name: document.getElementById("hike-title").value.trim(),
-            dist: document.getElementById("hike-dist").value.trim(),
-            gain: document.getElementById("hike-gain").value.trim(),
-            grade: Number(document.getElementById("hike-grade").value),
-            host: document.getElementById("hike-host").value.trim(),
-            tag: document.getElementById("hike-type").value,
-            notes: document.getElementById("hike-notes").value.trim(),
-            gmap: document.getElementById("hike-gmap").value.trim(),
-            alltrails: document.getElementById("hike-alltrails").value.trim(),
-            isHot: document.getElementById("hike-type").value === "특별"
-          };
-        }
-        return h;
-      });
-      saveHikes(hikes);
-      if (window.currentDetailHikeId === hikeIdNum) openHikeDetail(hikeIdNum);
+      await db.collection("hikes").doc(editId).update(hikeData);
     } else {
-      const newHike = {
-        id: Date.now(),
-        date: dateMatch ? dateMatch[1].trim() : rawDate,
-        day: dateMatch && dateMatch[2] ? dateMatch[2].trim() : "",
-        time: document.getElementById("hike-time").value.trim(),
-        name: document.getElementById("hike-title").value.trim(),
-        dist: document.getElementById("hike-dist").value.trim(),
-        gain: document.getElementById("hike-gain").value.trim(),
-        grade: Number(document.getElementById("hike-grade").value),
-        host: document.getElementById("hike-host").value.trim(),
-        tag: document.getElementById("hike-type").value,
-        notes: document.getElementById("hike-notes").value.trim(),
-        gmap: document.getElementById("hike-gmap").value.trim(),
-        alltrails: document.getElementById("hike-alltrails").value.trim(),
-        isHot: document.getElementById("hike-type").value === "특별",
-        rsvps: []
-      };
-      hikes.push(newHike);
-      saveHikes(hikes);
-      currentRegularPage = 1;
-      currentSpecialPage = 1;
+      hikeData.rsvps = [];
+      await db.collection("hikes").add(hikeData);
     }
     
-    renderHikes();
     document.getElementById("hike-form").reset();
     hikeModal.close();
   });
@@ -3075,8 +3003,7 @@
   });
 
   window.openEditReportModal = function(id) {
-    const reports = getReports();
-    const rep = reports.find(r => r.id === id);
+    const rep = reportsState.find(r => r.id === id);
     if (!rep) return;
 
     document.getElementById("report-edit-id").value = rep.id;
@@ -3112,30 +3039,18 @@
       }
     }
 
-    const rawData = localStorage.getItem(STORAGE_REPORT_KEY);
-    let reports = rawData ? JSON.parse(rawData) : defaultReports;
-
     if (editId) {
-      const repIdNum = Number(editId);
-      reports = reports.map(r => {
-        if (r.id === repIdNum) {
-          return {
-            ...r,
-            kind: document.getElementById("report-kind").value,
-            title: document.getElementById("report-title").value.trim(),
-            youtube: document.getElementById("report-youtube").value.trim(),
-            content: document.getElementById("report-content").value.trim(),
-            by: document.getElementById("report-by").value.trim(),
-            photos: photoDataUrls.length > 0 ? photoDataUrls : (r.photos || [])
-          };
-        }
-        return r;
-      });
-      saveReports(reports);
-      openReportDetail(repIdNum);
+      const updateData = {
+        kind: document.getElementById("report-kind").value,
+        title: document.getElementById("report-title").value.trim(),
+        youtube: document.getElementById("report-youtube").value.trim(),
+        content: document.getElementById("report-content").value.trim(),
+        by: document.getElementById("report-by").value.trim()
+      };
+      if (photoDataUrls.length > 0) updateData.photos = photoDataUrls;
+      await db.collection("reports").doc(editId).update(updateData);
     } else {
       const newReport = {
-        id: Date.now(),
         kind: document.getElementById("report-kind").value,
         title: document.getElementById("report-title").value.trim(),
         youtube: document.getElementById("report-youtube").value.trim(),
@@ -3143,11 +3058,9 @@
         by: document.getElementById("report-by").value.trim(),
         photos: photoDataUrls
       };
-      reports.unshift(newReport);
-      saveReports(reports);
+      await db.collection("reports").add(newReport);
     }
 
-    renderReports();
     document.getElementById("report-form").reset();
     reportModal.close();
   });
@@ -3155,8 +3068,7 @@
   /* ── App Initialization ────────────────────────────────────────────── */
   document.addEventListener("DOMContentLoaded", () => {
     renderAuthNav();
-    renderHikes();
-    renderReports();
+    initFirestoreSync();
   });
 </script>
 
