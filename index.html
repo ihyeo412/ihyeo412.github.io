@@ -1178,6 +1178,44 @@
     font-weight: 600;
     padding-bottom: 0;
     border-bottom: none;
+    min-width: 0;
+    flex: 1;
+  }
+  /* 제목을 눌러 내용을 펼쳤다 접습니다 */
+  .info-toggle {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+    text-align: left;
+    font: inherit;
+    color: var(--ink);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: color 0.15s;
+  }
+  .info-toggle:hover { color: var(--forest); }
+  .info-toggle .chev {
+    flex: none;
+    font-family: var(--f-mono);
+    font-size: 0.7rem;
+    color: var(--muted);
+    transition: transform 0.18s ease;
+  }
+  .info-toggle[aria-expanded="true"] .chev {
+    transform: rotate(90deg);
+    color: var(--accent);
+  }
+  .info-toggle .count {
+    flex: none;
+    margin-left: auto;
+    font-family: var(--f-mono);
+    font-size: 0.66rem;
+    color: var(--muted);
+    font-weight: 400;
   }
   .linklist-body {
     padding-top: 0.7rem;
@@ -2111,6 +2149,8 @@
   let introsState = [];
   let membersState = [];
   let infosState = [];
+  // 기타 정보에서 펼쳐 놓은 항목들. 실시간 갱신으로 다시 그려도 유지되도록 밖에 둡니다.
+  const expandedInfoIds = new Set();
 
   const MIN_PASSWORD_LENGTH = 8;
   const ITEMS_PER_PAGE = 4;
@@ -3816,10 +3856,27 @@
         .map(src => safeImageUrl(src))
         .filter(Boolean);
 
+      // 기본은 접힌 상태. 펼침 여부는 실시간 갱신에도 유지되도록 밖에 둡니다.
+      const open = expandedInfoIds.has(item.id);
+
+      // 접혀 있을 때 무엇이 들어 있는지 짐작할 수 있게 개수를 보여 줍니다.
+      const counts = [
+        links.length ? `링크 ${links.length}` : "",
+        shots.length ? `사진 ${shots.length}` : ""
+      ].filter(Boolean).join(" · ");
+
       return `
         <div class="linklist">
           <div class="linklist-head">
-            <h3>${escapeHtml(item.title)}</h3>
+            <h3>
+              <button type="button" class="info-toggle" aria-expanded="${open}"
+                      aria-controls="info-body-${item.id}"
+                      onclick="toggleInfo('${item.id}')">
+                <span class="chev" aria-hidden="true">▶</span>
+                <span>${escapeHtml(item.title)}</span>
+                ${counts ? `<span class="count">${counts}</span>` : ''}
+              </button>
+            </h3>
             ${canEdit ? `
               <div style="display:flex; gap:0.25rem;">
                 <button class="action-btn" onclick="openEditInfoModal('${item.id}')" title="수정">수정</button>
@@ -3828,30 +3885,41 @@
             ` : ''}
           </div>
 
-          ${item.content ? `<div class="linklist-body">${escapeHtml(item.content)}</div>` : ''}
+          <div id="info-body-${item.id}" ${open ? "" : "hidden"}>
+            ${item.content ? `<div class="linklist-body">${escapeHtml(item.content)}</div>` : ''}
 
-          ${links.map(l => {
-            const url = safeUrl(l.url);
-            const label = escapeHtml(l.label || l.url || "");
-            // 주소가 아닌 값은 링크로 만들지 않고 글자만 보여 줍니다.
-            if (!url) return `<a class="internal" href="#info" onclick="return false;">${label}</a>`;
-            return `<a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`;
-          }).join("")}
+            ${links.map(l => {
+              const url = safeUrl(l.url);
+              const label = escapeHtml(l.label || l.url || "");
+              // 주소가 아닌 값은 링크로 만들지 않고 글자만 보여 줍니다.
+              if (!url) return `<a class="internal" href="#info" onclick="return false;">${label}</a>`;
+              return `<a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+            }).join("")}
 
-          ${shots.length > 0 ? `
-            <div class="info-shots">
-              ${shots.map((src, i) => `
-                <img src="${src}" alt="${escapeHtml(item.title)} 첨부 사진 ${i + 1}"
-                     loading="lazy" onclick="openLightbox(this.src)">
-              `).join("")}
-            </div>
-          ` : ''}
+            ${shots.length > 0 ? `
+              <div class="info-shots">
+                ${shots.map((src, i) => `
+                  <img src="${src}" alt="${escapeHtml(item.title)} 첨부 사진 ${i + 1}"
+                       loading="lazy" onclick="openLightbox(this.src)">
+                `).join("")}
+              </div>
+            ` : ''}
 
-          ${item.by ? `<div class="linklist-by">${escapeHtml(item.by)}</div>` : ''}
+            ${item.by ? `<div class="linklist-by">${escapeHtml(item.by)}</div>` : ''}
+          </div>
         </div>
       `;
     }).join("");
   }
+
+  window.toggleInfo = function(id) {
+    if (expandedInfoIds.has(id)) {
+      expandedInfoIds.delete(id);
+    } else {
+      expandedInfoIds.add(id);
+    }
+    renderInfos();
+  };
 
   window.deleteInfo = async function(id) {
     const item = infosState.find(i => i.id === id);
