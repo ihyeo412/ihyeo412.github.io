@@ -1217,6 +1217,30 @@
     color: var(--muted);
     font-weight: 400;
   }
+
+  /* ── 순서 바꾸기 (드래그) ───────────────────────────────────────── */
+  .drag-handle {
+    flex: none;
+    background: none;
+    border: none;
+    padding: 0 0.15rem;
+    margin-right: 0.1rem;
+    color: var(--muted);
+    font-size: 0.95rem;
+    line-height: 1;
+    cursor: grab;
+    touch-action: none;
+  }
+  .drag-handle:hover { color: var(--forest); }
+  .drag-handle:active { cursor: grabbing; }
+
+  .linklist.dragging {
+    opacity: 0.45;
+  }
+  /* 놓을 자리를 세로 선으로 표시합니다 */
+  .linklist.drop-before { box-shadow: -3px 0 0 0 var(--accent); }
+  .linklist.drop-after  { box-shadow:  3px 0 0 0 var(--accent); }
+  .linklist { transition: box-shadow 0.12s, opacity 0.12s; }
   .linklist-body {
     padding-top: 0.7rem;
     font-size: 0.86rem;
@@ -2397,7 +2421,11 @@
       snapshot.forEach(doc => {
         infosState.push({ id: doc.id, ...doc.data() });
       });
-      infosState.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+      // order 가 같으면(아직 순서를 정한 적 없는 항목들) 제목순으로 안정화합니다.
+      infosState.sort((a, b) =>
+        (a.order ?? 0) - (b.order ?? 0) ||
+        String(a.title || "").localeCompare(String(b.title || ""), "ko")
+      );
       renderInfos();
     }, onSyncError("기타 정보"));
 
@@ -3859,6 +3887,9 @@
       // 기본은 접힌 상태. 펼침 여부는 실시간 갱신에도 유지되도록 밖에 둡니다.
       const open = expandedInfoIds.has(item.id);
 
+      // 순서는 모두에게 공유되는 값이라 관리자만 바꿀 수 있게 합니다.
+      const canReorder = isAdmin();
+
       // 접혀 있을 때 무엇이 들어 있는지 짐작할 수 있게 개수를 보여 줍니다.
       const counts = [
         links.length ? `링크 ${links.length}` : "",
@@ -3866,8 +3897,20 @@
       ].filter(Boolean).join(" · ");
 
       return `
-        <div class="linklist">
+        <div class="linklist" data-info-id="${item.id}"
+             ${canReorder ? `
+               ondragstart="onInfoDragStart(event, '${item.id}')"
+               ondragover="onInfoDragOver(event, '${item.id}')"
+               ondragleave="onInfoDragLeave(event)"
+               ondrop="onInfoDrop(event, '${item.id}')"
+               ondragend="onInfoDragEnd(event)"
+             ` : ''}>
           <div class="linklist-head">
+            ${canReorder ? `
+              <button type="button" class="drag-handle" title="끌어서 순서 바꾸기"
+                      aria-label="${escapeHtml(item.title)} 순서 바꾸기"
+                      onmousedown="beginInfoDrag(this)">⠿</button>
+            ` : ''}
             <h3>
               <button type="button" class="info-toggle" aria-expanded="${open}"
                       aria-controls="info-body-${item.id}"
@@ -3919,6 +3962,113 @@
       expandedInfoIds.add(id);
     }
     renderInfos();
+  };
+
+  /* ── 기타 정보 순서 바꾸기 ────────────────────────────────────────────
+     카드 전체를 항상 draggable 로 두면 본문 글자를 고르거나 링크를 누를 때
+     걸리적거립니다. 그래서 손잡이(⠿)를 누르는 순간에만 draggable 을 켭니다. */
+  let draggingInfoId = null;
+
+  const infoCardEl = (id) =>
+    document.querySelector(`#info-list .linklist[data-info-id="${id}"]`);
+
+  window.beginInfoDrag = function(handle) {
+    const card = handle.closest(".linklist");
+    if (card) card.draggable = true;
+  };
+
+  function clearInfoDropMarks() {
+    document.querySelectorAll("#info-list .linklist").forEach(el => {
+      el.classList.remove("drop-before", "drop-after");
+    });
+  }
+
+  window.onInfoDragStart = function(e, id) {
+    draggingInfoId = id;
+    e.dataTransfer.effectAllowed = "move";
+    // Firefox 는 데이터가 있어야 드래그를 시작합니다.
+    try { e.dataTransfer.setData("text/plain", id); } catch {}
+    const card = infoCardEl(id);
+    if (card) card.classList.add("dragging");
+  };
+
+  window.onInfoDragOver = function(e, id) {
+    if (!draggingInfoId || id === draggingInfoId) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+
+    const card = infoCardEl(id);
+    if (!card) return;
+    const rect = card.getBoundingClientRect();
+    const before = e.clientX < rect.left + rect.width / 2;
+
+    clearInfoDropMarks();
+    card.classList.add(before ? "drop-before" : "drop-after");
+  };
+
+  window.onInfoDragLeave = function(e) {
+    const card = e.currentTarget;
+    // 자식 요소로 옮겨간 것뿐이면 표시를 지우지 않습니다.
+    if (card.contains(e.relatedTarget)) return;
+    card.classList.remove("drop-before", "drop-after");
+  };
+
+  window.onInfoDragEnd = function() {
+    const card = draggingInfoId ? infoCardEl(draggingInfoId) : null;
+    if (card) { card.classList.remove("dragging"); card.draggable = false; }
+    document.querySelectorAll("#info-list .linklist").forEach(el => el.draggable = false);
+    clearInfoDropMarks();
+    draggingInfoId = null;
+  };
+
+  window.onInfoDrop = async function(e, targetId) {
+    e.preventDefault();
+    const movedId = draggingInfoId;
+    const card = infoCardEl(targetId);
+    const insertBefore = card ? card.classList.contains("drop-before") : true;
+
+    clearInfoDropMarks();
+    onInfoDragEnd();
+
+    if (!movedId || movedId === targetId) return;
+    if (!isAdmin()) {
+      alert("순서 변경은 관리자만 할 수 있습니다.");
+      return;
+    }
+
+    const from = infosState.findIndex(i => i.id === movedId);
+    if (from === -1) return;
+
+    // 배열에서 빼낸 뒤, 목표 카드의 앞이나 뒤에 끼워 넣습니다.
+    const reordered = [...infosState];
+    const [moved] = reordered.splice(from, 1);
+    const targetIdx = reordered.findIndex(i => i.id === targetId);
+    if (targetIdx === -1) return;
+    reordered.splice(insertBefore ? targetIdx : targetIdx + 1, 0, moved);
+
+    // 저장 대상은 자리가 실제로 바뀐 항목만입니다.
+    const changed = reordered
+      .map((item, index) => ({ item, index }))
+      .filter(({ item, index }) => item.order !== index);
+
+    // 화면을 먼저 바꿔 반응을 빠르게 하고, 저장에 실패하면 되돌립니다.
+    const previous = infosState;
+    // 연달아 끌어도 중복 저장이 생기지 않도록 order 값도 함께 맞춰 둡니다.
+    infosState = reordered.map((item, index) => ({ ...item, order: index }));
+    renderInfos();
+
+    try {
+      const batch = db.batch();
+      changed.forEach(({ item, index }) => {
+        batch.update(db.collection("infos").doc(item.id), { order: index });
+      });
+      await batch.commit();
+    } catch (err) {
+      console.error("순서 저장 실패:", err);
+      infosState = previous;
+      renderInfos();
+      alert(`순서를 저장하지 못했습니다.\n(${err.code || err.message})`);
+    }
   };
 
   window.deleteInfo = async function(id) {
