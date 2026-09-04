@@ -1161,6 +1161,44 @@
     font-size: 0.72rem;
     color: var(--muted);
   }
+  /* 내부 앵커(#...)로 가는 링크에는 외부 링크 화살표를 붙이지 않습니다 */
+  .linklist a.internal::after { content: ""; }
+
+  /* ── 기타 정보 카드 ─────────────────────────────────────────────── */
+  .linklist-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding-bottom: 0.7rem;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .linklist-head h3 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+  .linklist-body {
+    padding-top: 0.7rem;
+    font-size: 0.86rem;
+    line-height: 1.7;
+    color: var(--ink-soft);
+    white-space: pre-line;
+  }
+  .linklist-by {
+    margin-top: 0.8rem;
+    font-family: var(--f-mono);
+    font-size: 0.68rem;
+    color: var(--muted);
+  }
+  .info-empty {
+    grid-column: 1 / -1;
+    padding: 1.5rem;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
 
   footer {
     border-top: 1px solid var(--hairline);
@@ -1202,7 +1240,7 @@
       <a href="#schedule" onclick="showMainView()">산행 일정</a>
       <a href="#reports" onclick="showMainView()">산행 후기</a>
       <a href="#join" onclick="showMainView()">가입 안내</a>
-      <a href="#info" onclick="showMainView()">준비 정보</a>
+      <a href="#info" onclick="showMainView()">기타 정보</a>
       <div id="auth-nav-container"></div>
     </nav>
   </header>
@@ -1328,34 +1366,14 @@
     <!-- ── Info Section ────────────────────────────────────────────── -->
     <section class="section" id="info">
       <div class="section-head">
-        <h2>준비 정보</h2>
-        <p style="margin-left:auto; font-size:0.85rem; color:var(--muted); max-width:34ch;">
-          특별 산행은 퍼밋이 먼저입니다. 인기 구간은 6개월 전에 열립니다.
-        </p>
-      </div>
-
-      <div class="cols">
-        <div class="linklist">
-          <h3>Wilderness Permit</h3>
-          <a href="https://www.nps.gov/yose/planyourvisit/wildpermits.htm" target="_blank" rel="noopener">요세미티 국립공원</a>
-          <a href="https://www.fs.usda.gov/main/inyo/passes-permits/recreation" target="_blank" rel="noopener">인요 국유림</a>
-          <a href="https://www.nps.gov/seki/planyourvisit/wilderness_permits.htm" target="_blank" rel="noopener">킹스캐니언 · 세쿼이아</a>
-        </div>
-
-        <div class="linklist">
-          <h3>캠핑장 예약</h3>
-          <a href="https://www.recreation.gov" target="_blank" rel="noopener">recreation.gov — 국립공원</a>
-          <a href="https://www.reservecalifornia.com" target="_blank" rel="noopener">ReserveCalifornia — 주립공원</a>
-          <a href="https://www.ebparks.org/camping" target="_blank" rel="noopener">이스트베이 리저널 파크</a>
-        </div>
-
-        <div class="linklist">
-          <h3>기본 준비물</h3>
-          <a href="#schedule">물 2L · 행동식 · 헤드램프</a>
-          <a href="#schedule">레이어링 — 해안은 오후에 안개가 듭니다</a>
-          <a href="#schedule">틱 예방 — 긴바지와 하산 후 확인</a>
+        <h2>기타 정보</h2>
+        <span class="period">퍼밋 · 예약 · 이용 안내</span>
+        <div class="head-actions">
+          <button type="button" class="btn btn-solid btn-sm" id="open-info-modal-btn">+ 정보 추가하기</button>
         </div>
       </div>
+
+      <div class="cols" id="info-list"></div>
     </section>
   </div>
 
@@ -1734,6 +1752,37 @@
     </form>
   </dialog>
 
+  <!-- ── 기타 정보 등록 / 수정 ─────────────────────────────────────── -->
+  <dialog id="info-modal" class="modal">
+    <form id="info-form" method="dialog" class="modal-box">
+      <input type="hidden" id="info-edit-id" value="">
+      <div class="modal-head">
+        <h3 id="info-modal-title">기타 정보 등록</h3>
+        <button type="button" id="close-info-modal-btn" class="close-btn" aria-label="닫기">×</button>
+      </div>
+
+      <div class="form-grid">
+        <label class="full">
+          <span>제목</span>
+          <input type="text" id="info-title" placeholder="예: 산행 지도(맵) 올리는 방법" required>
+        </label>
+        <label class="full">
+          <span>설명 (선택)</span>
+          <textarea id="info-content" rows="6" placeholder="예:&#10;1. AllTrails에서 코스를 검색합니다.&#10;2. 주소창의 전체 링크를 복사합니다.&#10;3. 산행 일정 등록 화면의 AllTrails 칸에 붙여넣습니다."></textarea>
+        </label>
+        <label class="full">
+          <span>참고 링크 (선택) — 한 줄에 하나씩 <code>이름 | 주소</code> 형식</span>
+          <textarea id="info-links" rows="4" placeholder="요세미티 국립공원 | https://www.nps.gov/yose/planyourvisit/wildpermits.htm&#10;recreation.gov | https://www.recreation.gov"></textarea>
+        </label>
+      </div>
+
+      <div class="modal-foot">
+        <button type="button" class="btn btn-ghost" id="cancel-info-btn">취소</button>
+        <button type="submit" class="btn btn-solid" id="info-submit-btn">정보 저장</button>
+      </div>
+    </form>
+  </dialog>
+
   <footer>
     <p class="about">
       ihiker는 모두에게 열린 건전한 산악회를 지향합니다. 각 회원의 자발적인 참여와 봉사로 운영되며,
@@ -1941,10 +1990,38 @@
     { name: "바람", status: "three", count: 3, recentHike: "후다트 카운티 파크", date: "2026-08-30", memo: "신입 회원 3회 달성 / 등업 대기" }
   ];
 
+  // 기타 정보 — 원래 하드코딩되어 있던 준비 정보 3묶음을 기본값으로 옮겼습니다.
+  const defaultInfos = [
+    {
+      title: "Wilderness Permit",
+      content: "특별 산행은 퍼밋이 먼저입니다. 인기 구간은 6개월 전에 열립니다.",
+      links: [
+        { label: "요세미티 국립공원", url: "https://www.nps.gov/yose/planyourvisit/wildpermits.htm" },
+        { label: "인요 국유림", url: "https://www.fs.usda.gov/main/inyo/passes-permits/recreation" },
+        { label: "킹스캐니언 · 세쿼이아", url: "https://www.nps.gov/seki/planyourvisit/wilderness_permits.htm" }
+      ]
+    },
+    {
+      title: "캠핑장 예약",
+      content: "",
+      links: [
+        { label: "recreation.gov — 국립공원", url: "https://www.recreation.gov" },
+        { label: "ReserveCalifornia — 주립공원", url: "https://www.reservecalifornia.com" },
+        { label: "이스트베이 리저널 파크", url: "https://www.ebparks.org/camping" }
+      ]
+    },
+    {
+      title: "기본 준비물",
+      content: "물 2L · 행동식 · 헤드램프\n레이어링 — 해안은 오후에 안개가 듭니다\n틱 예방 — 긴바지와 하산 후 확인",
+      links: []
+    }
+  ];
+
   let hikesState = [];
   let reportsState = [];
   let introsState = [];
   let membersState = [];
+  let infosState = [];
 
   const MIN_PASSWORD_LENGTH = 8;
   const ITEMS_PER_PAGE = 4;
@@ -2012,29 +2089,46 @@
 
     const markerRef = db.collection("meta").doc("seed");
 
+    const seeds = [
+      ["hikes", defaultHikes],
+      ["reports", defaultReports],
+      ["intros", defaultIntros],
+      ["members", defaultMembers],
+      ["infos", defaultInfos]
+    ];
+
     try {
       const marker = await markerRef.get();
-      if (marker.exists) return;
 
-      // 비어 있는 컬렉션만 채웁니다. 이미 자료가 있으면 건드리지 않습니다.
-      const seeds = [
-        ["hikes", defaultHikes],
-        ["reports", defaultReports],
-        ["intros", defaultIntros],
-        ["members", defaultMembers]
-      ];
+      // 어떤 컬렉션을 이미 채웠는지 기록해 둡니다.
+      // 표식만 있고 목록이 없는 예전 기록은, 그때 있던 네 컬렉션을 채운 것으로 봅니다.
+      const done = marker.exists
+        ? (marker.data().collections || ["hikes", "reports", "intros", "members"])
+        : [];
+
+      const todo = seeds.filter(([name]) => !done.includes(name));
+      if (todo.length === 0) return;
 
       const uid = getCurrentUid();
+      const seeded = [...done];
 
-      for (const [name, items] of seeds) {
+      for (const [name, items] of todo) {
+        // 이미 자료가 있으면 건드리지 않고 기록만 남깁니다.
         const existing = await db.collection(name).limit(1).get();
-        if (!existing.empty) continue;
-        for (const item of items) {
-          await db.collection(name).add({ ...item, ownerUid: uid });
+        if (existing.empty) {
+          for (const item of items) {
+            await db.collection(name).add({ ...item, ownerUid: uid });
+          }
         }
+        seeded.push(name);
       }
 
-      await markerRef.set({ seededAt: new Date().toISOString(), version: 1 });
+      await markerRef.set({
+        seededAt: marker.exists ? marker.data().seededAt : new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        version: 2,
+        collections: seeded
+      });
     } catch (err) {
       console.error("기본 데이터 초기화 실패:", err);
     }
@@ -2096,6 +2190,16 @@
       renderAuthNav();
       renderReports();
     }, onSyncError("회원 명단"));
+
+    // 5. 기타 정보
+    db.collection("infos").onSnapshot((snapshot) => {
+      infosState = [];
+      snapshot.forEach(doc => {
+        infosState.push({ id: doc.id, ...doc.data() });
+      });
+      infosState.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+      renderInfos();
+    }, onSyncError("기타 정보"));
 
     // 유저 정보는 더 이상 전체를 구독하지 않습니다.
     // 로그인한 본인 문서만 onAuthStateChanged에서 한 번 읽습니다.
@@ -2176,6 +2280,7 @@
     renderAuthNav();
     renderHikes();
     renderReports();
+    renderInfos();
 
     // 완전히 새 DB를 처음 띄운 경우에만 기본 데이터를 넣습니다.
     await seedIfFirstRun();
@@ -3528,6 +3633,162 @@
 
     document.getElementById("report-form").reset();
     reportModal.close();
+  });
+
+  /* ── 기타 정보 Render ──────────────────────────────────────────────── */
+  function renderInfos() {
+    const container = document.getElementById("info-list");
+    const currentUser = getCurrentUser();
+
+    if (infosState.length === 0) {
+      container.innerHTML = `
+        <div class="info-empty">
+          등록된 정보가 없습니다. 퍼밋·예약 방법이나 이용 안내를 남겨 주세요!
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = infosState.map(item => {
+      const canEdit = currentUser && (item.ownerUid === getCurrentUid() || isAdmin());
+      const links = Array.isArray(item.links) ? item.links : [];
+
+      return `
+        <div class="linklist">
+          <div class="linklist-head">
+            <h3>${escapeHtml(item.title)}</h3>
+            ${canEdit ? `
+              <div style="display:flex; gap:0.25rem;">
+                <button class="action-btn" onclick="openEditInfoModal('${item.id}')" title="수정">수정</button>
+                <button class="action-btn delete" onclick="deleteInfo('${item.id}')" title="삭제">×</button>
+              </div>
+            ` : ''}
+          </div>
+
+          ${item.content ? `<div class="linklist-body">${escapeHtml(item.content)}</div>` : ''}
+
+          ${links.map(l => {
+            const url = safeUrl(l.url);
+            const label = escapeHtml(l.label || l.url || "");
+            // 주소가 아닌 값은 링크로 만들지 않고 글자만 보여 줍니다.
+            if (!url) return `<a class="internal" href="#info" onclick="return false;">${label}</a>`;
+            return `<a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+          }).join("")}
+
+          ${item.by ? `<div class="linklist-by">${escapeHtml(item.by)}</div>` : ''}
+        </div>
+      `;
+    }).join("");
+  }
+
+  window.deleteInfo = async function(id) {
+    const item = infosState.find(i => i.id === id);
+    if (!item) return;
+
+    if (!(item.ownerUid === getCurrentUid() || isAdmin())) {
+      alert("본인이 등록한 정보만 삭제할 수 있습니다.");
+      return;
+    }
+    if (!confirm(`"${item.title}" 정보를 삭제하시겠습니까?`)) return;
+
+    try {
+      await db.collection("infos").doc(id).delete();
+    } catch (err) {
+      console.error("정보 삭제 실패:", err);
+      alert(`정보를 삭제하지 못했습니다.\n(${err.code || err.message})`);
+    }
+  };
+
+  /* ── 기타 정보 Add & Edit Modal ────────────────────────────────────── */
+  const infoModal = document.getElementById("info-modal");
+
+  // "이름 | 주소" 줄들을 링크 배열로, 그리고 그 반대로 변환합니다.
+  function parseInfoLinks(text) {
+    return String(text || "")
+      .split("\n")
+      .map(line => line.trim())
+      .filter(Boolean)
+      .map(line => {
+        const idx = line.lastIndexOf("|");
+        if (idx === -1) return { label: line, url: "" };
+        return { label: line.slice(0, idx).trim(), url: line.slice(idx + 1).trim() };
+      })
+      .filter(l => l.label || l.url);
+  }
+
+  const infoLinksToText = (links) =>
+    (Array.isArray(links) ? links : [])
+      .map(l => l.url ? `${l.label || ""} | ${l.url}` : (l.label || ""))
+      .join("\n");
+
+  document.getElementById("open-info-modal-btn").addEventListener("click", () => {
+    const currentUser = getCurrentUser();
+    if (!isRegularMember(currentUser)) {
+      alert("기타 정보 등록은 [정회원]만 가능합니다.");
+      if (!currentUser) openAuthModal(false);
+      return;
+    }
+    document.getElementById("info-edit-id").value = "";
+    document.getElementById("info-modal-title").innerText = "기타 정보 등록";
+    document.getElementById("info-submit-btn").innerText = "정보 등록";
+    document.getElementById("info-form").reset();
+    infoModal.showModal();
+  });
+
+  window.openEditInfoModal = function(id) {
+    const item = infosState.find(i => i.id === id);
+    if (!item) return;
+
+    if (!(item.ownerUid === getCurrentUid() || isAdmin())) {
+      alert("본인이 등록한 정보만 수정할 수 있습니다.");
+      return;
+    }
+
+    document.getElementById("info-edit-id").value = item.id;
+    document.getElementById("info-modal-title").innerText = "기타 정보 수정";
+    document.getElementById("info-submit-btn").innerText = "수정 완료";
+
+    document.getElementById("info-title").value = item.title || "";
+    document.getElementById("info-content").value = item.content || "";
+    document.getElementById("info-links").value = infoLinksToText(item.links);
+
+    infoModal.showModal();
+  };
+
+  document.getElementById("close-info-modal-btn").addEventListener("click", () => infoModal.close());
+  document.getElementById("cancel-info-btn").addEventListener("click", () => infoModal.close());
+
+  document.getElementById("info-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const editId = document.getElementById("info-edit-id").value;
+    const currentUser = getCurrentUser();
+
+    const payload = {
+      title: document.getElementById("info-title").value.trim(),
+      content: document.getElementById("info-content").value.trim(),
+      links: parseInfoLinks(document.getElementById("info-links").value)
+    };
+
+    if (!payload.title) {
+      alert("제목을 입력해 주세요.");
+      return;
+    }
+
+    try {
+      if (editId) {
+        await db.collection("infos").doc(editId).update(payload);
+      } else {
+        payload.ownerUid = getCurrentUid();
+        payload.by = `${currentUser} · ${new Date().toISOString().split("T")[0]}`;
+        payload.order = infosState.length;
+        await db.collection("infos").add(payload);
+      }
+      document.getElementById("info-form").reset();
+      infoModal.close();
+    } catch (err) {
+      console.error("정보 저장 실패:", err);
+      alert(`정보를 저장하지 못했습니다.\n(${err.code || err.message})`);
+    }
   });
 
   /* ── App Initialization ────────────────────────────────────────────── */
