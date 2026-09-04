@@ -1199,6 +1199,80 @@
     color: var(--muted);
     font-size: 0.85rem;
   }
+  .info-shots {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
+    gap: 0.5rem;
+    padding-top: 0.8rem;
+  }
+  .info-shots img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: var(--radius);
+    border: 1px solid var(--hairline);
+    cursor: zoom-in;
+    display: block;
+  }
+
+  /* ── 첨부 사진 미리보기 (모달) ──────────────────────────────────── */
+  .field-hint {
+    display: block;
+    margin-top: 0.35rem;
+    font-size: 0.74rem;
+    line-height: 1.6;
+    color: var(--muted);
+    font-weight: 400;
+  }
+  .photo-preview {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(6rem, 1fr));
+    gap: 0.5rem;
+  }
+  .photo-preview:empty { display: none; }
+  .photo-preview .shot {
+    position: relative;
+  }
+  .photo-preview .shot img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: var(--radius);
+    border: 1px solid var(--hairline);
+    display: block;
+  }
+  .photo-preview .shot button {
+    position: absolute;
+    top: 0.2rem;
+    right: 0.2rem;
+    width: 1.4rem;
+    height: 1.4rem;
+    border: none;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.65);
+    color: #fff;
+    font-size: 0.9rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+  }
+  .photo-preview .shot button:hover { background: #d9534f; }
+
+  /* 사진 원본 보기 */
+  #lightbox {
+    border: none;
+    background: transparent;
+    padding: 0;
+    max-width: 92vw;
+    max-height: 92vh;
+  }
+  #lightbox::backdrop { background: rgba(0, 0, 0, 0.82); }
+  #lightbox img {
+    display: block;
+    max-width: 92vw;
+    max-height: 92vh;
+    border-radius: var(--radius);
+  }
 
   footer {
     border-top: 1px solid var(--hairline);
@@ -1774,13 +1848,28 @@
           <span>참고 링크 (선택) — 한 줄에 하나씩 <code>이름 | 주소</code> 형식</span>
           <textarea id="info-links" rows="4" placeholder="요세미티 국립공원 | https://www.nps.gov/yose/planyourvisit/wildpermits.htm&#10;recreation.gov | https://www.recreation.gov"></textarea>
         </label>
+        <label class="full">
+          <span>사진 / 화면 캡처 (선택) — 최대 6장</span>
+          <input type="file" id="info-photos" accept="image/*" multiple>
+          <small class="field-hint">
+            캡처 이미지를 복사한 뒤 이 창에서 <b>⌘V</b> 로 바로 붙여넣을 수도 있습니다.
+            (Mac 화면 캡처를 클립보드로 복사하려면 <b>⌘⇧⌃4</b>)
+            올릴 때 자동으로 크기를 줄여 저장합니다.
+          </small>
+        </label>
       </div>
+
+      <div id="info-photo-preview" class="photo-preview"></div>
 
       <div class="modal-foot">
         <button type="button" class="btn btn-ghost" id="cancel-info-btn">취소</button>
         <button type="submit" class="btn btn-solid" id="info-submit-btn">정보 저장</button>
       </div>
     </form>
+  </dialog>
+
+  <dialog id="lightbox" aria-label="사진 크게 보기">
+    <img id="lightbox-img" src="" alt="첨부 사진">
   </dialog>
 
   <footer>
@@ -2067,6 +2156,77 @@
     if (DATA_IMAGE_RE.test(raw)) return escapeHtml(raw);
     return safeUrl(raw);
   }
+
+  /* ── 이미지 첨부 ──────────────────────────────────────────────────────
+     사진은 문서 안에 base64로 저장됩니다. Firestore 문서 하나는 1 MiB를
+     넘을 수 없어서, 요즘 스크린샷(2~4 MB)을 원본 그대로 넣으면 저장이 실패합니다.
+     그래서 올리기 전에 캔버스로 축소·압축합니다. */
+  const IMAGE_MAX_DIM = 1600;          // 긴 변 최대 픽셀
+  const IMAGE_PER_FILE_BUDGET = 400 * 1024;  // 사진 한 장 목표 크기(base64 문자 수)
+  const IMAGE_TOTAL_BUDGET = 800 * 1024;     // 한 글에 담을 사진 전체 한도
+  const IMAGE_MAX_COUNT = 6;
+
+  function loadImageFile(file) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("이미지를 읽을 수 없습니다.")); };
+      img.src = url;
+    });
+  }
+
+  // 목표 크기 안에 들어올 때까지 화질을 낮추고, 그래도 크면 해상도를 줄입니다.
+  async function compressImage(file, maxDim = IMAGE_MAX_DIM) {
+    const img = await loadImageFile(file);
+    const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+    const width = Math.max(1, Math.round(img.width * scale));
+    const height = Math.max(1, Math.round(img.height * scale));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    // 투명 PNG가 검게 나오지 않도록 흰 바탕을 깔고 그립니다.
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, width, height);
+    ctx.drawImage(img, 0, 0, width, height);
+
+    for (const quality of [0.82, 0.7, 0.6, 0.5, 0.4]) {
+      const dataUrl = canvas.toDataURL("image/jpeg", quality);
+      if (dataUrl.length <= IMAGE_PER_FILE_BUDGET) return dataUrl;
+    }
+    if (maxDim > 700) return compressImage(file, Math.round(maxDim * 0.7));
+    return null;
+  }
+
+  // 파일 목록을 압축된 data URL 배열로. 한도를 넘으면 이유를 담아 throw 합니다.
+  async function filesToImageDataUrls(files, alreadyCount = 0, alreadyBytes = 0) {
+    const out = [];
+    let count = alreadyCount;
+    let bytes = alreadyBytes;
+
+    for (const file of files) {
+      if (!file.type || !file.type.startsWith("image/")) continue;
+      if (count >= IMAGE_MAX_COUNT) {
+        throw new Error(`사진은 최대 ${IMAGE_MAX_COUNT}장까지 첨부할 수 있습니다.`);
+      }
+      const dataUrl = await compressImage(file);
+      if (!dataUrl) {
+        throw new Error(`"${file.name || "사진"}" 은(는) 너무 커서 첨부할 수 없습니다.`);
+      }
+      if (bytes + dataUrl.length > IMAGE_TOTAL_BUDGET) {
+        throw new Error("사진 용량 합계가 한도를 넘었습니다. 장수를 줄이거나 더 작은 사진을 올려 주세요.");
+      }
+      bytes += dataUrl.length;
+      count += 1;
+      out.push(dataUrl);
+    }
+    return out;
+  }
+
+  const dataUrlBytes = (list) =>
+    (Array.isArray(list) ? list : []).reduce((sum, u) => sum + String(u).length, 0);
 
   function parseHikeDate(dateStr) {
     if (!dateStr) return 0;
@@ -3578,16 +3738,16 @@
     e.preventDefault();
     const editId = document.getElementById("report-edit-id").value;
     const files = document.getElementById("report-photos").files;
-    const photoDataUrls = [];
+    let photoDataUrls = [];
 
+    // 원본을 그대로 넣으면 Firestore 문서 1 MiB 한도를 넘겨 저장이 실패합니다.
+    // 기타 정보와 같은 압축 경로를 씁니다.
     if (files && files.length > 0) {
-      for (const file of files) {
-        const dataUrl = await new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onload = (event) => resolve(event.target.result);
-          reader.readAsDataURL(file);
-        });
-        photoDataUrls.push(dataUrl);
+      try {
+        photoDataUrls = await filesToImageDataUrls(files);
+      } catch (err) {
+        alert(err.message);
+        return;
       }
     }
 
@@ -3652,6 +3812,9 @@
     container.innerHTML = infosState.map(item => {
       const canEdit = currentUser && (item.ownerUid === getCurrentUid() || isAdmin());
       const links = Array.isArray(item.links) ? item.links : [];
+      const shots = (Array.isArray(item.images) ? item.images : [])
+        .map(src => safeImageUrl(src))
+        .filter(Boolean);
 
       return `
         <div class="linklist">
@@ -3674,6 +3837,15 @@
             if (!url) return `<a class="internal" href="#info" onclick="return false;">${label}</a>`;
             return `<a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`;
           }).join("")}
+
+          ${shots.length > 0 ? `
+            <div class="info-shots">
+              ${shots.map((src, i) => `
+                <img src="${src}" alt="${escapeHtml(item.title)} 첨부 사진 ${i + 1}"
+                     loading="lazy" onclick="openLightbox(this.src)">
+              `).join("")}
+            </div>
+          ` : ''}
 
           ${item.by ? `<div class="linklist-by">${escapeHtml(item.by)}</div>` : ''}
         </div>
@@ -3699,8 +3871,69 @@
     }
   };
 
+  /* ── 사진 크게 보기 ────────────────────────────────────────────────── */
+  const lightbox = document.getElementById("lightbox");
+  window.openLightbox = function(src) {
+    const safe = safeImageUrl(src);
+    if (!safe) return;
+    document.getElementById("lightbox-img").src = src;
+    lightbox.showModal();
+  };
+  lightbox.addEventListener("click", () => lightbox.close());
+
   /* ── 기타 정보 Add & Edit Modal ────────────────────────────────────── */
   const infoModal = document.getElementById("info-modal");
+
+  // 모달에서 편집 중인 사진 목록 (저장 전까지 메모리에만 있습니다)
+  let infoDraftImages = [];
+
+  function renderInfoPhotoPreview() {
+    const box = document.getElementById("info-photo-preview");
+    box.innerHTML = infoDraftImages.map((src, i) => {
+      const safe = safeImageUrl(src);
+      if (!safe) return "";
+      return `
+        <div class="shot">
+          <img src="${safe}" alt="첨부 사진 ${i + 1}">
+          <button type="button" onclick="removeInfoDraftImage(${i})" title="이 사진 빼기" aria-label="사진 ${i + 1} 빼기">×</button>
+        </div>
+      `;
+    }).join("");
+  }
+
+  window.removeInfoDraftImage = function(index) {
+    infoDraftImages.splice(index, 1);
+    renderInfoPhotoPreview();
+  };
+
+  async function addInfoImages(files) {
+    if (!files || files.length === 0) return;
+    try {
+      const added = await filesToImageDataUrls(
+        files,
+        infoDraftImages.length,
+        dataUrlBytes(infoDraftImages)
+      );
+      infoDraftImages = infoDraftImages.concat(added);
+      renderInfoPhotoPreview();
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  document.getElementById("info-photos").addEventListener("change", async (e) => {
+    await addInfoImages(e.target.files);
+    e.target.value = "";   // 같은 파일을 다시 고를 수 있도록 비웁니다
+  });
+
+  // 모달이 열려 있을 때 클립보드의 화면 캡처를 바로 붙여넣을 수 있게 합니다.
+  document.addEventListener("paste", async (e) => {
+    if (!infoModal.open) return;
+    const items = e.clipboardData ? e.clipboardData.files : null;
+    if (!items || items.length === 0) return;
+    e.preventDefault();
+    await addInfoImages(items);
+  });
 
   // "이름 | 주소" 줄들을 링크 배열로, 그리고 그 반대로 변환합니다.
   function parseInfoLinks(text) {
@@ -3732,6 +3965,8 @@
     document.getElementById("info-modal-title").innerText = "기타 정보 등록";
     document.getElementById("info-submit-btn").innerText = "정보 등록";
     document.getElementById("info-form").reset();
+    infoDraftImages = [];
+    renderInfoPhotoPreview();
     infoModal.showModal();
   });
 
@@ -3752,6 +3987,10 @@
     document.getElementById("info-content").value = item.content || "";
     document.getElementById("info-links").value = infoLinksToText(item.links);
 
+    // 기존 사진을 그대로 이어받아, 빼거나 더할 수 있게 합니다.
+    infoDraftImages = Array.isArray(item.images) ? [...item.images] : [];
+    renderInfoPhotoPreview();
+
     infoModal.showModal();
   };
 
@@ -3766,11 +4005,17 @@
     const payload = {
       title: document.getElementById("info-title").value.trim(),
       content: document.getElementById("info-content").value.trim(),
-      links: parseInfoLinks(document.getElementById("info-links").value)
+      links: parseInfoLinks(document.getElementById("info-links").value),
+      images: [...infoDraftImages]
     };
 
     if (!payload.title) {
       alert("제목을 입력해 주세요.");
+      return;
+    }
+
+    if (dataUrlBytes(payload.images) > IMAGE_TOTAL_BUDGET) {
+      alert("사진 용량 합계가 한도를 넘었습니다. 몇 장 빼고 다시 저장해 주세요.");
       return;
     }
 
