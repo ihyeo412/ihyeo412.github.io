@@ -1261,6 +1261,30 @@
     color: var(--muted);
     font-size: 0.85rem;
   }
+
+  /* 기타 정보는 접혀 있을 때 제목 한 줄뿐이라 기본 .cols 간격이 과합니다.
+     세로만 촘촘하게 하고 가로 간격은 읽기 편하게 남겨 둡니다. */
+  #info-list {
+    row-gap: 0.75rem;
+    column-gap: 2rem;
+  }
+  #info { padding-block: clamp(2rem, 5vw, 3rem); }
+  #info .section-head { margin-bottom: 1.2rem; }
+
+  /* .period 는 기본이 nowrap 이라, 제목이 길면 좁은 화면에서 가로 스크롤이
+     생깁니다. 이 요약 문구만 줄바꿈을 허용하고 한 줄 넘으면 말줄임 처리합니다. */
+  #info-summary {
+    white-space: normal;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+    word-break: break-all;
+  }
   .info-shots {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
@@ -1503,7 +1527,7 @@
     <section class="section" id="info">
       <div class="section-head">
         <h2>기타 정보</h2>
-        <span class="period">퍼밋 · 예약 · 이용 안내</span>
+        <span class="period" id="info-summary"></span>
         <div class="head-actions">
           <button type="button" class="btn btn-solid btn-sm" id="open-info-modal-btn">+ 정보 추가하기</button>
         </div>
@@ -3867,6 +3891,19 @@
   function renderInfos() {
     const container = document.getElementById("info-list");
     const currentUser = getCurrentUser();
+
+    // 제목 옆 문구는 고정 문구가 아니라 실제 등록된 항목에서 만듭니다.
+    const summary = document.getElementById("info-summary");
+    if (summary) {
+      const titles = infosState.map(i => String(i.title || "").trim()).filter(Boolean);
+      if (titles.length === 0) {
+        summary.textContent = "";
+      } else if (titles.length <= 3) {
+        summary.textContent = titles.join(" · ");
+      } else {
+        summary.textContent = `${titles.slice(0, 3).join(" · ")} 외 ${titles.length - 3}건`;
+      }
+    }
 
     if (infosState.length === 0) {
       container.innerHTML = `
