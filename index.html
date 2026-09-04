@@ -2717,7 +2717,7 @@
   });
 
   /* ── RSVP Handler ──────────────────────────────────────────────────── */
-  // 본인 댓글이거나 운영자(ihiker)면 수정·삭제할 수 있습니다.
+  // 본인 댓글이거나 관리자(role: admin)면 수정·삭제할 수 있습니다.
   function canManageRsvp(rsvpItem, currentUser) {
     if (!currentUser || !rsvpItem) return false;
     return rsvpItem.username === currentUser || isAdmin();
