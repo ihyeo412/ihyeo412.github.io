@@ -28,6 +28,7 @@
 <!-- ── Firebase SDK ────────────────────────────────────────────── -->
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 
 <style>
   /* ── Reset ─────────────────────────────────────────────────────────── */
@@ -792,6 +793,37 @@
     font-size: 0.88rem;
     color: var(--ink-soft);
     line-height: 1.5;
+  }
+  .rsvp-edited {
+    margin-left: 0.35rem;
+    font-family: var(--f-mono);
+    font-size: 0.68rem;
+    font-weight: 400;
+    color: var(--muted);
+  }
+  .rsvp-edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    margin-top: 0.15rem;
+  }
+  .rsvp-edit-form input {
+    padding: 0.5rem 0.65rem;
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: 0.88rem;
+    border-radius: var(--radius);
+  }
+  .rsvp-edit-form input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .rsvp-edit-actions {
+    display: flex;
+    gap: 0.4rem;
+    justify-content: flex-end;
   }
 
   .intro-cards {
@@ -1671,6 +1703,13 @@
           <input type="text" id="report-by" placeholder="예: ihiker · 9월 5일" required>
         </label>
         <label class="full">
+          <span>공개 범위</span>
+          <select id="report-visibility">
+            <option value="all">전체 공개 — 일반회원도 전문과 영상을 볼 수 있습니다</option>
+            <option value="regular">정회원 전용 — 정회원만 열람할 수 있습니다</option>
+          </select>
+        </label>
+        <label class="full">
           <span>후기 제목</span>
           <input type="text" id="report-title" placeholder="예: 늦여름 타마락 플랫에서 보낸 하룻밤" required>
         </label>
@@ -1721,6 +1760,7 @@
     firebase.initializeApp(firebaseConfig);
   }
   const db = firebase.firestore();
+  const auth = firebase.auth();
 
   /* ── Default Seed Data ─────────────────────────────────────────────── */
   const defaultHikes = [
@@ -1905,14 +1945,51 @@
   let reportsState = [];
   let introsState = [];
   let membersState = [];
-  let usersState = { "ihiker": "12345" };
 
-  const STORAGE_CURRENT_USER = "ihiker_current_user";
+  const MIN_PASSWORD_LENGTH = 8;
   const ITEMS_PER_PAGE = 4;
   let currentRegularPage = 1;
   let currentSpecialPage = 1;
   let isSignupMode = false;
   let activeMemberFilter = 'all';
+  // 현재 인라인 수정 중인 참가 신청 댓글의 id (없으면 null).
+  // 실시간 스냅샷이 상세 화면을 다시 그려도 수정 상태가 유지되도록 밖에 둡니다.
+  let editingRsvpId = null;
+
+  const escapeHtml = (value) => String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+  // href/src에 들어갈 URL은 http(s)만 허용합니다.
+  // javascript:, data: 같은 스킴이 링크에 들어가면 클릭 시 코드가 실행됩니다.
+  function safeUrl(value) {
+    const raw = String(value ?? "").trim();
+    if (!raw) return "";
+    try {
+      // 상대경로는 허용하지 않습니다. 지도·사진 링크는 모두 외부 절대주소이므로,
+      // 주소가 아닌 값이 같은 출처 요청으로 새어 나가지 않게 막습니다.
+      const parsed = new URL(raw);
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return "";
+      return escapeHtml(parsed.href);
+    } catch {
+      return "";
+    }
+  }
+
+  // img src 전용. 후기 사진은 업로드 시 data:image URL로 저장되므로
+  // http(s)에 더해 이 형태만 함께 허용합니다.
+  // data:image/svg+xml은 스크립트를 품을 수 있어 제외합니다.
+  const DATA_IMAGE_RE = /^data:image\/(png|jpeg|jpg|gif|webp|avif);base64,[A-Za-z0-9+/=\s]+$/i;
+
+  function safeImageUrl(value) {
+    const raw = String(value ?? "").trim();
+    if (!raw) return "";
+    if (DATA_IMAGE_RE.test(raw)) return escapeHtml(raw);
+    return safeUrl(raw);
+  }
 
   function parseHikeDate(dateStr) {
     if (!dateStr) return 0;
@@ -1921,16 +1998,56 @@
     return parseInt(match[1], 10) * 100 + parseInt(match[2], 10);
   }
 
+  /* ── One-Time Seeding ──────────────────────────────────────────────────
+     기본 데이터는 DB가 처음 만들어질 때 단 한 번만 넣습니다.
+     이전에는 각 onSnapshot이 "컬렉션이 비면 기본 데이터를 다시 추가"했기 때문에
+     마지막 산행 후기를 지우는 순간 기본 후기 3개가 곧바로 되살아나
+     삭제가 되지 않는 것처럼 보였습니다. 이제는 meta/seed 표식으로 1회만 실행합니다.
+
+     보안 규칙상 쓰기에는 로그인이 필요하므로, 이 함수는 관리자가 로그인한
+     직후에만 호출됩니다(아래 onAuthStateChanged). 표식이 이미 있으면 아무것도
+     하지 않으므로, 운영 중인 DB에서는 사실상 한 번도 동작하지 않습니다. */
+  async function seedIfFirstRun() {
+    if (!isAdmin()) return;
+
+    const markerRef = db.collection("meta").doc("seed");
+
+    try {
+      const marker = await markerRef.get();
+      if (marker.exists) return;
+
+      // 비어 있는 컬렉션만 채웁니다. 이미 자료가 있으면 건드리지 않습니다.
+      const seeds = [
+        ["hikes", defaultHikes],
+        ["reports", defaultReports],
+        ["intros", defaultIntros],
+        ["members", defaultMembers]
+      ];
+
+      const uid = getCurrentUid();
+
+      for (const [name, items] of seeds) {
+        const existing = await db.collection(name).limit(1).get();
+        if (!existing.empty) continue;
+        for (const item of items) {
+          await db.collection(name).add({ ...item, ownerUid: uid });
+        }
+      }
+
+      await markerRef.set({ seededAt: new Date().toISOString(), version: 1 });
+    } catch (err) {
+      console.error("기본 데이터 초기화 실패:", err);
+    }
+  }
+
   /* ── Real-Time Sync Setup ──────────────────────────────────────────── */
   function initFirestoreSync() {
+    const onSyncError = (label) => (err) => {
+      console.error(`${label} 동기화 오류:`, err);
+    };
+
     // 1. 산행 일정
-    db.collection("hikes").onSnapshot(async (snapshot) => {
-      if (snapshot.empty) {
-        for (const item of defaultHikes) {
-          await db.collection("hikes").add(item);
-        }
-        return;
-      }
+    db.collection("hikes").onSnapshot((snapshot) => {
       hikesState = [];
       snapshot.forEach(doc => {
         hikesState.push({ id: doc.id, ...doc.data() });
@@ -1938,33 +2055,26 @@
       hikesState.sort((a, b) => parseHikeDate(b.date) - parseHikeDate(a.date));
       renderHikes();
       if (window.currentDetailHikeId) {
-        openHikeDetail(window.currentDetailHikeId);
+        // 상세 보기 중인 산행이 삭제되었다면 목록으로 되돌립니다.
+        if (hikesState.some(h => h.id === window.currentDetailHikeId)) {
+          openHikeDetail(window.currentDetailHikeId);
+        } else {
+          showMainView();
+        }
       }
-    });
+    }, onSyncError("산행 일정"));
 
     // 2. 산행 후기
-    db.collection("reports").onSnapshot(async (snapshot) => {
-      if (snapshot.empty) {
-        for (const item of defaultReports) {
-          await db.collection("reports").add(item);
-        }
-        return;
-      }
+    db.collection("reports").onSnapshot((snapshot) => {
       reportsState = [];
       snapshot.forEach(doc => {
         reportsState.push({ id: doc.id, ...doc.data() });
       });
       renderReports();
-    });
+    }, onSyncError("산행 후기"));
 
     // 3. 가입 인사
-    db.collection("intros").onSnapshot(async (snapshot) => {
-      if (snapshot.empty) {
-        for (const item of defaultIntros) {
-          await db.collection("intros").add(item);
-        }
-        return;
-      }
+    db.collection("intros").onSnapshot((snapshot) => {
       introsState = [];
       snapshot.forEach(doc => {
         introsState.push({ id: doc.id, ...doc.data() });
@@ -1973,16 +2083,10 @@
       if (document.getElementById("intro-board-view").style.display === "block") {
         renderIntros();
       }
-    });
+    }, onSyncError("가입 인사"));
 
     // 4. 회원 명단
-    db.collection("members").onSnapshot(async (snapshot) => {
-      if (snapshot.empty) {
-        for (const item of defaultMembers) {
-          await db.collection("members").add(item);
-        }
-        return;
-      }
+    db.collection("members").onSnapshot((snapshot) => {
       membersState = [];
       snapshot.forEach(doc => {
         membersState.push({ id: doc.id, ...doc.data() });
@@ -1991,52 +2095,102 @@
       renderMembersTable();
       renderAuthNav();
       renderReports();
-    });
+    }, onSyncError("회원 명단"));
 
-    // 5. 유저 정보
-    db.collection("users").onSnapshot(async (snapshot) => {
-      if (snapshot.empty) {
-        await db.collection("users").doc("ihiker").set({ password: "12345" });
-        return;
-      }
-      usersState = { "ihiker": "12345" };
-      snapshot.forEach(doc => {
-        usersState[doc.id] = doc.data().password;
-      });
-      if (!usersState["ihiker"]) {
-        usersState["ihiker"] = "12345";
-        db.collection("users").doc("ihiker").set({ password: "12345" });
-      }
-    });
+    // 유저 정보는 더 이상 전체를 구독하지 않습니다.
+    // 로그인한 본인 문서만 onAuthStateChanged에서 한 번 읽습니다.
   }
 
-  /* ── User Session & Auth ───────────────────────────────────────────── */
-  const getCurrentUser = () => localStorage.getItem(STORAGE_CURRENT_USER);
-  const setCurrentUser = (username) => {
-    if (username) {
-      localStorage.setItem(STORAGE_CURRENT_USER, username);
-    } else {
-      localStorage.removeItem(STORAGE_CURRENT_USER);
-    }
-    renderAuthNav();
-  };
+  /* ── User Session & Auth ──────────────────────────────────────────────
+     세션은 Firebase Authentication이 관리합니다. 예전에는 localStorage에
+     닉네임 문자열만 넣어 뒀기 때문에 신원을 서버가 검증할 방법이 없었고,
+     그래서 Firestore 규칙도 누가 쓰는지 알 수 없어 전면 개방 상태였습니다. */
+
+  // 회원은 닉네임으로 로그인하지만 Auth는 이메일을 요구합니다.
+  // 닉네임의 UTF-8 바이트를 16진수로 바꿔 ASCII 이메일을 만듭니다.
+  // (한글 닉네임을 그대로 넣으면 Auth가 잘못된 이메일로 거부합니다.)
+  const EMAIL_DOMAIN = "ihiker.invalid";
+  const MAX_NICKNAME_BYTES = 30;
+
+  function nicknameToEmail(nickname) {
+    const bytes = new TextEncoder().encode(String(nickname).trim().toLowerCase());
+    if (bytes.length === 0 || bytes.length > MAX_NICKNAME_BYTES) return null;
+    const hex = [...bytes].map(b => b.toString(16).padStart(2, "0")).join("");
+    return `u${hex}@${EMAIL_DOMAIN}`;
+  }
+
+  // { uid, nickname, role } — 로그아웃 상태면 null
+  let currentSession = null;
+
+  const getCurrentUser = () => currentSession ? currentSession.nickname : null;
+  const getCurrentUid = () => currentSession ? currentSession.uid : null;
+  const isAdmin = () => !!currentSession && currentSession.role === "admin";
 
   function isRegularMember(username) {
     if (!username) return false;
-    if (username === "ihiker") return true;
+    if (isAdmin()) return true;
     return membersState.some(m => m.name === username && m.status === "regular");
   }
+
+  /* ── 후기 공개 범위 ────────────────────────────────────────────────────
+     "all"      = 전체 공개. 로그인한 회원이면 등급과 무관하게 전문을 봅니다.
+     "regular"  = 정회원 전용.
+     공개 범위 필드가 없는 예전 후기는 기존 동작을 유지해 정회원 전용으로 봅니다. */
+  const reportVisibility = (report) =>
+    (report && report.visibility === "all") ? "all" : "regular";
+
+  const isReportPublic = (report) => reportVisibility(report) === "all";
+
+  // 후기 전문·영상을 볼 수 있는지. 전체 공개 후기는 로그인만 하면 됩니다.
+  function canReadReport(report, username) {
+    if (!username) return false;
+    if (isReportPublic(report)) return true;
+    return isRegularMember(username);
+  }
+
+  // 로그인/로그아웃 시 세션을 다시 만들고 화면 전체를 갱신합니다.
+  auth.onAuthStateChanged(async (user) => {
+    if (!user) {
+      currentSession = null;
+      renderAuthNav();
+      renderHikes();
+      renderReports();
+      showMainView();
+      return;
+    }
+
+    let profile = {};
+    try {
+      const snap = await db.collection("users").doc(user.uid).get();
+      profile = snap.exists ? snap.data() : {};
+    } catch (err) {
+      console.error("프로필을 불러오지 못했습니다:", err);
+    }
+
+    currentSession = {
+      uid: user.uid,
+      nickname: profile.nickname || user.displayName || "회원",
+      role: profile.role === "admin" ? "admin" : "member"
+    };
+
+    renderAuthNav();
+    renderHikes();
+    renderReports();
+
+    // 완전히 새 DB를 처음 띄운 경우에만 기본 데이터를 넣습니다.
+    await seedIfFirstRun();
+  });
 
   function renderAuthNav() {
     const container = document.getElementById("auth-nav-container");
     const user = getCurrentUser();
     if (user) {
-      const isMaster = (user === "ihiker");
+      const isMaster = isAdmin();
       const regularStatus = isRegularMember(user);
       const badgeText = isMaster ? '관리자' : (regularStatus ? '정회원' : '신입');
       container.innerHTML = `
         <div class="user-badge">
-          <span>👤 ${user} <small style="color:${isMaster ? 'var(--accent)' : (regularStatus ? 'var(--forest)' : 'var(--muted)')}; font-weight:600;">[${badgeText}]</small></span>
+          <span>👤 ${escapeHtml(user)} <small style="color:${isMaster ? 'var(--accent)' : (regularStatus ? 'var(--forest)' : 'var(--muted)')}; font-weight:600;">[${badgeText}]</small></span>
           <button type="button" onclick="openChangePwdModal()" style="background:none; border:none; color:var(--forest); font-size:0.72rem; cursor:pointer; padding:0; text-decoration:underline;">비번변경</button>
           <button type="button" onclick="logout()" style="background:none; border:none; color:var(--muted); font-size:0.72rem; cursor:pointer; padding:0; text-decoration:underline;">로그아웃</button>
         </div>
@@ -2048,10 +2202,13 @@
     }
   }
 
-  window.logout = function() {
-    setCurrentUser(null);
-    showMainView();
-    renderReports();
+  window.logout = async function() {
+    try {
+      await auth.signOut();
+    } catch (err) {
+      console.error("로그아웃 실패:", err);
+      alert(`로그아웃하지 못했습니다.\n(${err.code || err.message})`);
+    }
   };
 
   /* ── Auth Modal Event Handlers ─────────────────────────────────────── */
@@ -2079,42 +2236,74 @@
     const password = document.getElementById("auth-password").value.trim();
     const errorMsg = document.getElementById("auth-error-msg");
 
+    const showError = (text) => {
+      errorMsg.innerText = text;
+      errorMsg.style.display = "block";
+    };
+
+    const email = nicknameToEmail(username);
+    if (!email) {
+      showError("닉네임은 한글 10자(영문 30자) 이내로 입력해 주세요.");
+      return;
+    }
+
     if (isSignupMode) {
-      if (username === "ihiker" || usersState[username]) {
-        errorMsg.innerText = "이미 존재하는 사용자 이름입니다.";
-        errorMsg.style.display = "block";
+      if (password.length < MIN_PASSWORD_LENGTH) {
+        showError(`비밀번호는 ${MIN_PASSWORD_LENGTH}자 이상이어야 합니다.`);
         return;
       }
-      await db.collection("users").doc(username).set({ password: password });
-      await db.collection("members").add({
-        name: username,
-        status: "three",
-        count: 0,
-        recentHike: "-",
-        date: new Date().toISOString().split("T")[0],
-        memo: "신규 가입 회원 (3회 참여 조건 대상)"
-      });
 
-      setCurrentUser(username);
-      authModal.close();
-    } else {
-      if (username === "ihiker" && password === "12345") {
-        setCurrentUser(username);
+      try {
+        // 닉네임 중복은 Auth의 이메일 유일성이 그대로 걸러 줍니다.
+        const cred = await auth.createUserWithEmailAndPassword(email, password);
+        await cred.user.updateProfile({ displayName: username });
+
+        // 비밀번호는 저장하지 않습니다. Auth가 서버에서 해시로 관리합니다.
+        await db.collection("users").doc(cred.user.uid).set({
+          nickname: username,
+          role: "member",
+          createdAt: new Date().toISOString()
+        });
+
+        await db.collection("members").add({
+          name: username,
+          ownerUid: cred.user.uid,
+          status: "three",
+          count: 0,
+          recentHike: "-",
+          date: new Date().toISOString().split("T")[0],
+          memo: "신규 가입 회원 (3회 참여 조건 대상)"
+        });
+
         authModal.close();
-        renderHikes();
-        renderReports();
-        return;
+      } catch (err) {
+        if (err.code === "auth/email-already-in-use") {
+          showError("이미 존재하는 닉네임입니다.");
+        } else if (err.code === "auth/weak-password") {
+          showError(`비밀번호는 ${MIN_PASSWORD_LENGTH}자 이상이어야 합니다.`);
+        } else if (err.code === "auth/operation-not-allowed" || err.code === "auth/configuration-not-found") {
+          showError("로그인 기능이 아직 준비되지 않았습니다. 운영자에게 문의해 주세요.");
+          console.error("Firebase 콘솔 > Authentication 에서 [이메일/비밀번호] 로그인을 활성화해 주세요.", err);
+        } else {
+          console.error("회원가입 실패:", err);
+          showError(`가입하지 못했습니다. (${err.code || err.message})`);
+        }
       }
-
-      if (!usersState[username] || usersState[username] !== password) {
-        errorMsg.innerText = "사용자 이름 또는 비밀번호가 일치하지 않습니다.";
-        errorMsg.style.display = "block";
-        return;
+    } else {
+      try {
+        await auth.signInWithEmailAndPassword(email, password);
+        authModal.close();
+      } catch (err) {
+        if (err.code === "auth/operation-not-allowed" || err.code === "auth/configuration-not-found") {
+          showError("로그인 기능이 아직 준비되지 않았습니다. 운영자에게 문의해 주세요.");
+          console.error("Firebase 콘솔 > Authentication 에서 [이메일/비밀번호] 로그인을 활성화해 주세요.", err);
+        } else if (err.code === "auth/too-many-requests") {
+          showError("로그인 시도가 너무 많습니다. 잠시 후 다시 시도해 주세요.");
+        } else {
+          // 존재하지 않는 계정과 틀린 비밀번호를 구분해 알려주지 않습니다.
+          showError("닉네임 또는 비밀번호가 일치하지 않습니다.");
+        }
       }
-      setCurrentUser(username);
-      authModal.close();
-      renderHikes();
-      renderReports();
     }
   });
 
@@ -2136,22 +2325,40 @@
     const newPassword = document.getElementById("new-password").value.trim();
     const errorMsg = document.getElementById("change-pwd-error-msg");
 
-    if (!currentUser || !usersState[currentUser]) {
-      errorMsg.innerText = "로그인 세션이 만료되었습니다. 다시 로그인해 주세요.";
+    const showError = (text) => {
+      errorMsg.innerText = text;
       errorMsg.style.display = "block";
+    };
+
+    const user = auth.currentUser;
+    if (!currentUser || !user) {
+      showError("로그인 세션이 만료되었습니다. 다시 로그인해 주세요.");
       return;
     }
 
-    if (usersState[currentUser] !== currPassword) {
-      errorMsg.innerText = "현재 비밀번호가 일치하지 않습니다.";
-      errorMsg.style.display = "block";
+    if (newPassword.length < MIN_PASSWORD_LENGTH) {
+      showError(`새 비밀번호는 ${MIN_PASSWORD_LENGTH}자 이상이어야 합니다.`);
       return;
     }
 
-    await db.collection("users").doc(currentUser).set({ password: newPassword });
-    usersState[currentUser] = newPassword;
-    alert("비밀번호가 성공적으로 변경되었습니다.");
-    changePwdModal.close();
+    try {
+      // Auth는 비밀번호 변경 전에 최근 로그인 증명을 요구합니다.
+      // 이 재인증이 곧 "현재 비밀번호" 확인 역할을 합니다.
+      const cred = firebase.auth.EmailAuthProvider.credential(user.email, currPassword);
+      await user.reauthenticateWithCredential(cred);
+      await user.updatePassword(newPassword);
+      alert("비밀번호가 성공적으로 변경되었습니다.");
+      changePwdModal.close();
+    } catch (err) {
+      if (err.code === "auth/wrong-password" || err.code === "auth/invalid-credential") {
+        showError("현재 비밀번호가 일치하지 않습니다.");
+      } else if (err.code === "auth/weak-password") {
+        showError(`새 비밀번호는 ${MIN_PASSWORD_LENGTH}자 이상이어야 합니다.`);
+      } else {
+        console.error("비밀번호 변경 실패:", err);
+        showError(`비밀번호를 변경하지 못했습니다. (${err.code || err.message})`);
+      }
+    }
   });
 
   /* ── Map & URL Helpers (URL 내 좌표 자동 추출 및 완벽 호환) ────────── */
@@ -2159,7 +2366,10 @@
     if (!url) return null;
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
     const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
+    if (!match) return null;
+    // 영상 ID는 영문/숫자/_/- 11자뿐입니다. 이 화이트리스트를 통과하지 못하면 버립니다.
+    // (예전에는 길이만 확인해서 따옴표가 섞인 값이 iframe src 속성을 깨뜨릴 수 있었습니다.)
+    return /^[A-Za-z0-9_-]{11}$/.test(match[2]) ? match[2] : null;
   }
 
   function getYouTubeThumbnail(url) {
@@ -2255,6 +2465,7 @@
     document.getElementById("members-board-view").style.display = "none";
     document.getElementById("rules-detail-view").style.display = "none";
     window.currentDetailHikeId = null;
+    editingRsvpId = null;
   };
 
   window.openRulesDetailView = function() {
@@ -2319,17 +2530,17 @@
 
     tbody.innerHTML = members.map(m => `
       <tr>
-        <td style="font-weight:600; color:var(--ink);">${m.name}</td>
+        <td style="font-weight:600; color:var(--ink);">${escapeHtml(m.name)}</td>
         <td>
           <span class="role-badge ${m.status === 'regular' ? 'regular' : 'three-plus'}">
             ${m.status === 'regular' ? '정회원' : '신입 회원'}
           </span>
         </td>
-        <td style="font-family:var(--f-mono);">${m.count}회</td>
-        <td>${m.recentHike || '-'}</td>
-        <td style="font-family:var(--f-mono); font-size:0.78rem;">${m.date}</td>
+        <td style="font-family:var(--f-mono);">${escapeHtml(m.count)}회</td>
+        <td>${escapeHtml(m.recentHike || '-')}</td>
+        <td style="font-family:var(--f-mono); font-size:0.78rem;">${escapeHtml(m.date)}</td>
         <td>
-          ${(currentUser && (currentUser === m.name || currentUser === 'ihiker')) ? `
+          ${(currentUser && (currentUser === m.name || isAdmin())) ? `
             <button class="action-btn delete" onclick="deleteMember('${m.id}')" title="명단 삭제">삭제</button>
           ` : `<span style="color:var(--hairline); font-size:0.75rem;">-</span>`}
         </td>
@@ -2366,7 +2577,8 @@
       count: parseInt(document.getElementById("member-count").value, 10) || 1,
       recentHike: document.getElementById("member-recent-hike").value.trim(),
       date: new Date().toISOString().split("T")[0],
-      memo: document.getElementById("member-memo").value.trim()
+      memo: document.getElementById("member-memo").value.trim(),
+      ownerUid: getCurrentUid()
     };
 
     await db.collection("members").add(newMember);
@@ -2393,20 +2605,20 @@
     container.innerHTML = introsState.map(item => `
       <article class="intro-card">
         <div class="intro-card-head">
-          <div class="intro-author-title">🌱 ${item.nickname}님의 가입 인사</div>
+          <div class="intro-author-title">🌱 ${escapeHtml(item.nickname)}님의 가입 인사</div>
           <div style="display:flex; align-items:center; gap:0.6rem;">
             <div class="intro-meta-tags">
-              <span class="intro-tag">📍 ${item.location}</span>
-              <span class="intro-tag">👤 ${item.gender}</span>
-              <span class="intro-tag">🧭 ${item.channel}</span>
+              <span class="intro-tag">📍 ${escapeHtml(item.location)}</span>
+              <span class="intro-tag">👤 ${escapeHtml(item.gender)}</span>
+              <span class="intro-tag">🧭 ${escapeHtml(item.channel)}</span>
             </div>
-            ${(currentUser && (currentUser === item.nickname || currentUser === 'ihiker')) ? `
+            ${(currentUser && (currentUser === item.nickname || isAdmin())) ? `
               <button class="action-btn delete" onclick="deleteIntro('${item.id}')" title="가입인사 삭제">삭제</button>
             ` : ''}
           </div>
         </div>
 
-        <div class="intro-body">${item.bio}</div>
+        <div class="intro-body">${escapeHtml(item.bio)}</div>
 
         <div class="welcome-list">
           <div style="font-family:var(--f-mono); font-size:0.75rem; color:#8fb3a2; font-weight:600; margin-bottom:0.2rem;">
@@ -2416,8 +2628,8 @@
             <div style="font-size:0.84rem; color:#c3ccbf;">아직 환영 인사가 없습니다. 환영의 한마디를 남겨주세요!</div>
           ` : item.welcomes.map(w => `
             <div class="welcome-item">
-              <span><b class="welcome-author">${w.username}</b>: ${w.msg}</span>
-              ${(currentUser && (currentUser === w.username || currentUser === 'ihiker')) ? `
+              <span><b class="welcome-author">${escapeHtml(w.username)}</b>: ${escapeHtml(w.msg)}</span>
+              ${(currentUser && (currentUser === w.username || isAdmin())) ? `
                 <button class="action-btn delete" onclick="deleteWelcome('${item.id}', ${w.id})" title="환영인사 삭제">×</button>
               ` : ''}
             </div>
@@ -2425,7 +2637,7 @@
 
           ${currentUser ? `
             <form class="welcome-input-row" onsubmit="handleWelcomeSubmit(event, '${item.id}')">
-              <input type="text" placeholder="${currentUser}님으로 환영 인사 남기기..." required>
+              <input type="text" placeholder="${escapeHtml(currentUser)}님으로 환영 인사 남기기..." required>
               <button type="submit" class="btn btn-solid btn-sm">환영</button>
             </form>
           ` : `
@@ -2495,6 +2707,7 @@
       channel: document.getElementById("intro-channel").value,
       bio: document.getElementById("intro-bio").value.trim(),
       date: new Date().toISOString().split("T")[0],
+      ownerUid: getCurrentUid(),
       welcomes: []
     };
 
@@ -2504,6 +2717,12 @@
   });
 
   /* ── RSVP Handler ──────────────────────────────────────────────────── */
+  // 본인 댓글이거나 운영자(ihiker)면 수정·삭제할 수 있습니다.
+  function canManageRsvp(rsvpItem, currentUser) {
+    if (!currentUser || !rsvpItem) return false;
+    return rsvpItem.username === currentUser || isAdmin();
+  }
+
   window.handleRsvpSubmit = async function(e, hikeId) {
     e.preventDefault();
     const currentUser = getCurrentUser();
@@ -2514,14 +2733,21 @@
 
     const msgInput = document.getElementById("rsvp-msg");
     const hike = hikesState.find(h => h.id === hikeId);
-    if (hike) {
-      const rsvps = hike.rsvps || [];
-      rsvps.push({
-        id: Date.now(),
-        username: currentUser,
-        msg: msgInput.value.trim() || "참가 신청합니다."
-      });
+    if (!hike) return;
+
+    // 원본 배열을 그대로 밀어 넣지 않고 새 배열을 만들어 저장합니다.
+    const rsvps = [...(hike.rsvps || []), {
+      id: Date.now(),
+      username: currentUser,
+      msg: msgInput.value.trim() || "참가 신청합니다."
+    }];
+
+    try {
       await db.collection("hikes").doc(hikeId).update({ rsvps: rsvps });
+      msgInput.value = "";
+    } catch (err) {
+      console.error("참가 신청 실패:", err);
+      alert(`참가 신청 댓글을 저장하지 못했습니다.\n(${err.code || err.message})`);
     }
   };
 
@@ -2533,7 +2759,7 @@
     const rsvpItem = hike.rsvps.find(r => r.id === rsvpId);
     if (!rsvpItem) return;
 
-    if (rsvpItem.username !== currentUser && currentUser !== 'ihiker') {
+    if (!canManageRsvp(rsvpItem, currentUser)) {
       alert("본인이 작성한 댓글만 삭제할 수 있습니다.");
       return;
     }
@@ -2541,7 +2767,81 @@
     if (!confirm("참가 신청 댓글을 삭제하시겠습니까?")) return;
 
     const rsvps = hike.rsvps.filter(r => r.id !== rsvpId);
-    await db.collection("hikes").doc(hikeId).update({ rsvps: rsvps });
+
+    try {
+      await db.collection("hikes").doc(hikeId).update({ rsvps: rsvps });
+      if (editingRsvpId === rsvpId) editingRsvpId = null;
+    } catch (err) {
+      console.error("댓글 삭제 실패:", err);
+      alert(`댓글을 삭제하지 못했습니다.\n(${err.code || err.message})`);
+    }
+  };
+
+  /* ── RSVP 인라인 수정 ──────────────────────────────────────────────── */
+  window.startEditRsvp = function(hikeId, rsvpId) {
+    const currentUser = getCurrentUser();
+    const hike = hikesState.find(h => h.id === hikeId);
+    const rsvpItem = (hike && hike.rsvps || []).find(r => r.id === rsvpId);
+
+    if (!canManageRsvp(rsvpItem, currentUser)) {
+      alert("본인이 작성한 댓글만 수정할 수 있습니다.");
+      return;
+    }
+
+    editingRsvpId = rsvpId;
+    openHikeDetail(hikeId);
+
+    const input = document.getElementById(`rsvp-edit-input-${rsvpId}`);
+    if (input) {
+      input.focus();
+      input.setSelectionRange(input.value.length, input.value.length);
+    }
+  };
+
+  window.cancelEditRsvp = function(hikeId) {
+    editingRsvpId = null;
+    openHikeDetail(hikeId);
+  };
+
+  window.saveRsvpEdit = async function(e, hikeId, rsvpId) {
+    e.preventDefault();
+    const currentUser = getCurrentUser();
+    const hike = hikesState.find(h => h.id === hikeId);
+    if (!hike || !hike.rsvps) return;
+
+    const rsvpItem = hike.rsvps.find(r => r.id === rsvpId);
+    if (!canManageRsvp(rsvpItem, currentUser)) {
+      alert("본인이 작성한 댓글만 수정할 수 있습니다.");
+      return;
+    }
+
+    const input = document.getElementById(`rsvp-edit-input-${rsvpId}`);
+    const newMsg = input ? input.value.trim() : "";
+    if (!newMsg) {
+      alert("참가 메시지를 입력해 주세요.");
+      return;
+    }
+
+    if (newMsg === rsvpItem.msg) {
+      editingRsvpId = null;
+      openHikeDetail(hikeId);
+      return;
+    }
+
+    const rsvps = hike.rsvps.map(r =>
+      r.id === rsvpId
+        ? { ...r, msg: newMsg, editedAt: new Date().toISOString() }
+        : r
+    );
+
+    try {
+      await db.collection("hikes").doc(hikeId).update({ rsvps: rsvps });
+      editingRsvpId = null;
+      openHikeDetail(hikeId);
+    } catch (err) {
+      console.error("댓글 수정 실패:", err);
+      alert(`댓글을 수정하지 못했습니다.\n(${err.code || err.message})`);
+    }
   };
 
   /* ── Hike Detail View ─────────────────────────────────────────────── */
@@ -2556,13 +2856,15 @@
 
     const rawGmap = hike.gmap || hike.name || "";
     const isShortUrl = rawGmap.includes("maps.app.goo.gl") || rawGmap.includes("goo.gl/maps");
-    const gmapEmbedUrl = getGoogleMapsEmbed(rawGmap);
-    const gmapDirectUrl = getGoogleMapsDirectUrl(rawGmap);
-    const alltrailsEmbedUrl = getAllTrailsEmbed(hike.alltrails);
+    // 지도 URL은 전부 http(s)로 제한하고 이스케이프한 뒤 src/href에 넣습니다.
+    const gmapEmbedUrl = safeUrl(getGoogleMapsEmbed(rawGmap));
+    const gmapDirectUrl = safeUrl(getGoogleMapsDirectUrl(rawGmap));
+    const alltrailsEmbedUrl = safeUrl(getAllTrailsEmbed(hike.alltrails));
+    const alltrailsLink = safeUrl(hike.alltrails);
 
     const rsvps = hike.rsvps || [];
     const currentUser = getCurrentUser();
-    const canEditHike = currentUser && (currentUser === hike.host || currentUser === 'ihiker');
+    const canEditHike = currentUser && (currentUser === hike.host || isAdmin());
 
     actionsContainer.innerHTML = canEditHike ? `
       <div style="display:flex; gap:0.5rem;">
@@ -2573,22 +2875,22 @@
 
     detailContainer.innerHTML = `
       <div class="detail-header">
-        <div class="eyebrow">${hike.tag} 산행 · 안내: ${hike.host}</div>
-        <h2 class="detail-title">${hike.name}</h2>
+        <div class="eyebrow">${escapeHtml(hike.tag)} 산행 · 안내: ${escapeHtml(hike.host)}</div>
+        <h2 class="detail-title">${escapeHtml(hike.name)}</h2>
       </div>
 
       <div class="detail-grid">
         <div class="detail-item">
           <span class="label">일시 및 시간</span>
-          <span class="value">${hike.date} (${hike.day || "주말"}) ${hike.time || ""}</span>
+          <span class="value">${escapeHtml(hike.date)} (${escapeHtml(hike.day || "주말")}) ${escapeHtml(hike.time || "")}</span>
         </div>
         <div class="detail-item">
           <span class="label">총 거리</span>
-          <span class="value">${hike.dist}</span>
+          <span class="value">${escapeHtml(hike.dist)}</span>
         </div>
         <div class="detail-item">
           <span class="label">상승 고도</span>
-          <span class="value">${hike.gain}</span>
+          <span class="value">${escapeHtml(hike.gain)}</span>
         </div>
         <div class="detail-item">
           <span class="label">난이도</span>
@@ -2598,7 +2900,7 @@
 
       ${hike.notes ? `
         <div style="background:var(--ground); padding:1rem 1.2rem; border-radius:var(--radius); border-left:3px solid var(--accent); font-size:0.9rem;">
-          <b>산행 메모:</b> ${hike.notes}
+          <b>산행 메모:</b> ${escapeHtml(hike.notes)}
         </div>
       ` : ''}
 
@@ -2646,12 +2948,12 @@
             ` : `
               <div class="map-empty-box">
                 <p style="margin-bottom:0.6rem;">등록된 AllTrails 링크가 없거나 임베드를 지원하지 않는 주소입니다.</p>
-                ${hike.alltrails ? `<a href="${hike.alltrails}" target="_blank" rel="noopener noreferrer" class="btn btn-solid btn-sm">AllTrails 페이지 열기 ↗</a>` : ''}
+                ${alltrailsLink ? `<a href="${alltrailsLink}" target="_blank" rel="noopener noreferrer" class="btn btn-solid btn-sm">AllTrails 페이지 열기 ↗</a>` : ''}
               </div>
             `}
           </div>
-          ${hike.alltrails ? `
-            <a href="${hike.alltrails}" target="_blank" rel="noopener noreferrer" class="map-foot-link">
+          ${alltrailsLink ? `
+            <a href="${alltrailsLink}" target="_blank" rel="noopener noreferrer" class="map-foot-link">
               AllTrails 웹사이트에서 큰 지도로 보기 ↗
             </a>
           ` : ''}
@@ -2668,7 +2970,7 @@
           <form class="rsvp-form" onsubmit="handleRsvpSubmit(event, '${hike.id}')">
             <input type="text" id="rsvp-msg" placeholder="참가 메시지를 입력해 주세요 (예: 함께 걷겠습니다!)" required>
             <div class="rsvp-form-foot">
-              <span style="font-family:var(--f-mono); font-size:0.8rem; color:var(--forest);">작성자: <b>${currentUser}</b></span>
+              <span style="font-family:var(--f-mono); font-size:0.8rem; color:var(--forest);">작성자: <b>${escapeHtml(currentUser)}</b></span>
               <button type="submit" class="btn btn-solid btn-sm">참가 신청 댓글 달기</button>
             </div>
           </form>
@@ -2684,17 +2986,40 @@
             <div style="text-align:center; padding:1.5rem; color:var(--muted); font-size:0.88rem;">
               아직 등록된 참가 신청이 없습니다. 첫 번째로 참가 댓글을 남겨보세요!
             </div>
-          ` : rsvps.map(r => `
+          ` : rsvps.map(r => {
+            const canManage = canManageRsvp(r, currentUser);
+            const isEditing = canManage && editingRsvpId === r.id;
+
+            return `
             <div class="rsvp-item">
               <div class="rsvp-item-head">
-                <span class="rsvp-author">${r.username}</span>
-                ${(currentUser && (r.username === currentUser || currentUser === 'ihiker')) ? `
-                  <button class="action-btn delete" onclick="deleteRsvp('${hike.id}', ${r.id})" title="댓글 삭제">×</button>
+                <span class="rsvp-author">
+                  ${escapeHtml(r.username)}
+                  ${r.editedAt ? `<span class="rsvp-edited">(수정됨)</span>` : ''}
+                </span>
+                ${canManage && !isEditing ? `
+                  <div style="display:flex; gap:0.25rem;">
+                    <button class="action-btn" onclick="startEditRsvp('${hike.id}', ${r.id})" title="댓글 수정">수정</button>
+                    <button class="action-btn delete" onclick="deleteRsvp('${hike.id}', ${r.id})" title="댓글 삭제">×</button>
+                  </div>
                 ` : ''}
               </div>
-              <div class="rsvp-msg">${r.msg}</div>
+
+              ${isEditing ? `
+                <form class="rsvp-edit-form" onsubmit="saveRsvpEdit(event, '${hike.id}', ${r.id})">
+                  <input type="text" id="rsvp-edit-input-${r.id}" value="${escapeHtml(r.msg)}"
+                         placeholder="참가 메시지를 입력해 주세요" required>
+                  <div class="rsvp-edit-actions">
+                    <button type="submit" class="btn btn-solid btn-sm">저장</button>
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="cancelEditRsvp('${hike.id}')">취소</button>
+                  </div>
+                </form>
+              ` : `
+                <div class="rsvp-msg">${escapeHtml(r.msg)}</div>
+              `}
             </div>
-          `).join('')}
+          `;
+          }).join('')}
         </div>
       </section>
     `;
@@ -2710,26 +3035,37 @@
 
   window.deleteHikeAndBack = async function(id) {
     if (!confirm("해당 산행 일정을 삭제하시겠습니까?")) return;
-    await db.collection("hikes").doc(id).delete();
-    showMainView();
+    try {
+      await db.collection("hikes").doc(id).delete();
+      showMainView();
+    } catch (err) {
+      console.error("산행 일정 삭제 실패:", err);
+      alert(`산행 일정을 삭제하지 못했습니다.\n(${err.code || err.message})`);
+    }
   };
 
   /* ── Report Detail View ────────────────────────────────────────────── */
   window.openReportDetail = function(id) {
     const currentUser = getCurrentUser();
-    if (!isRegularMember(currentUser)) {
-      alert("산행 후기 상세 내용은 [정회원]만 열람하실 수 있습니다.\n로그인 상태를 확인하시거나 정회원 등업 후 이용해 주세요.");
-      if (!currentUser) openAuthModal(false);
-      return;
-    }
 
+    // 공개 범위는 후기마다 다르므로 먼저 후기를 찾고 나서 판정합니다.
     const rep = reportsState.find(r => r.id === id);
     if (!rep) return;
+
+    if (!canReadReport(rep, currentUser)) {
+      if (!currentUser) {
+        alert("후기 전문을 보시려면 로그인이 필요합니다.");
+        openAuthModal(false);
+      } else {
+        alert("이 후기는 [정회원 전용]입니다.\n정회원 승급 후 영상과 상세 기록을 확인하실 수 있습니다.");
+      }
+      return;
+    }
 
     const detailContainer = document.getElementById("report-detail-content");
     const actionsContainer = document.getElementById("report-detail-actions");
     const ytVideoId = extractYouTubeId(rep.youtube);
-    const canEditReport = currentUser && (rep.by.includes(currentUser) || currentUser === 'ihiker');
+    const canEditReport = currentUser && ((rep.by || "").includes(currentUser) || isAdmin());
 
     actionsContainer.innerHTML = canEditReport ? `
       <div style="display:flex; gap:0.5rem;">
@@ -2740,8 +3076,8 @@
 
     detailContainer.innerHTML = `
       <div class="detail-header">
-        <div class="eyebrow">${rep.kind} · 기록자: ${rep.by} (🔒 정회원 전용)</div>
-        <h2 class="detail-title">${rep.title}</h2>
+        <div class="eyebrow">${escapeHtml(rep.kind)} · 기록자: ${escapeHtml(rep.by)} (${isReportPublic(rep) ? '🔓 전체 공개' : '🔒 정회원 전용'})</div>
+        <h2 class="detail-title">${escapeHtml(rep.title)}</h2>
       </div>
 
       ${ytVideoId ? `
@@ -2758,13 +3094,13 @@
         </div>
       ` : ''}
 
-      <div class="report-body-text">${rep.content}</div>
+      <div class="report-body-text">${escapeHtml(rep.content)}</div>
 
       ${(rep.photos && rep.photos.length > 0) ? `
         <div>
           <h4 style="font-family:var(--f-display); margin-bottom:0.8rem;">📸 현장 갤러리 (${rep.photos.length}장)</h4>
           <div class="gallery-grid">
-            ${rep.photos.map(url => `
+            ${rep.photos.map(url => safeImageUrl(url)).filter(Boolean).map(url => `
               <div class="gallery-img-wrapper">
                 <img src="${url}" alt="산행 후기 사진" loading="lazy">
               </div>
@@ -2784,9 +3120,22 @@
   };
 
   window.deleteReportAndBack = async function(id) {
+    const currentUser = getCurrentUser();
+    const rep = reportsState.find(r => r.id === id);
+
+    if (rep && !(rep.by || "").includes(currentUser) && !isAdmin()) {
+      alert("본인이 작성한 후기만 삭제할 수 있습니다.");
+      return;
+    }
     if (!confirm("해당 산행 후기를 삭제하시겠습니까?")) return;
-    await db.collection("reports").doc(id).delete();
-    showMainView();
+
+    try {
+      await db.collection("reports").doc(id).delete();
+      showMainView();
+    } catch (err) {
+      console.error("후기 삭제 실패:", err);
+      alert(`후기를 삭제하지 못했습니다.\n(${err.code || err.message})`);
+    }
   };
 
   /* ── Hike Render ───────────────────────────────────────────────────── */
@@ -2826,9 +3175,49 @@
     renderHikes();
   };
 
+  // 정기/특별 목록이 같은 카드를 쓰므로 한 곳에서 만들고 태그만 다르게 넘깁니다.
+  function renderHikeCard(h, currentUser, tagHtml) {
+    const rsvpCount = (h.rsvps || []).length;
+    const canEdit = currentUser && (currentUser === h.host || isAdmin());
+    const grade = Number(h.grade) || 0;
+
+    return `
+      <article class="hike">
+        <div class="when">
+          ${escapeHtml(h.date)}<small>${escapeHtml(h.day || "")}</small>
+          ${h.time ? `<span class="time">${escapeHtml(h.time)}</span>` : ''}
+        </div>
+        <div class="what">
+          <div class="name">
+            <button type="button" class="hike-title-link" onclick="openHikeDetail('${h.id}')" title="상세 지도 및 참가 신청하기">
+              ${escapeHtml(h.name)}
+            </button>
+            ${canEdit ? `
+              <button class="action-btn" onclick="openEditHikeModal('${h.id}')" title="수정">수정</button>
+              <button class="action-btn delete" onclick="deleteHike('${h.id}')" title="삭제">×</button>
+            ` : ''}
+          </div>
+          <div class="meta">
+            <span>${escapeHtml(h.dist)}</span>
+            <span>${escapeHtml(h.gain)}</span>
+            <span class="grade" title="난이도 ${escapeHtml(grade)}">
+              <i class="${grade >= 1 ? 'on' : ''}"></i>
+              <i class="${grade >= 2 ? 'on' : ''}"></i>
+              <i class="${grade >= 3 ? 'on' : ''}"></i>
+            </span>
+            <span class="host">${escapeHtml(h.host)}</span>
+            <span class="rsvp-badge">참가 ${rsvpCount}명</span>
+            ${h.notes ? `<span>${escapeHtml(h.notes)}</span>` : ''}
+          </div>
+        </div>
+        ${tagHtml}
+      </article>
+    `;
+  }
+
   function renderHikes() {
     const currentUser = getCurrentUser();
-    
+
     // 1. 주말 정기 산행
     const regularHikes = hikesState.filter(h => h.tag !== '특별');
     const regularContainer = document.getElementById("regular-hike-list");
@@ -2839,42 +3228,9 @@
 
     regularContainer.innerHTML = paginatedRegular.length === 0 ? `
       <div style="padding:1.5rem; text-align:center; color:var(--muted); font-size:0.85rem;">예정된 주말 정기 산행이 없습니다.</div>
-    ` : paginatedRegular.map(h => {
-      const rsvpCount = (h.rsvps || []).length;
-      const canEdit = currentUser && (currentUser === h.host || currentUser === 'ihiker');
-      return `
-        <article class="hike">
-          <div class="when">
-            ${h.date}<small>${h.day || ""}</small>
-            ${h.time ? `<span class="time">${h.time}</span>` : ''}
-          </div>
-          <div class="what">
-            <div class="name">
-              <button type="button" class="hike-title-link" onclick="openHikeDetail('${h.id}')" title="상세 지도 및 참가 신청하기">
-                ${h.name}
-              </button>
-              ${canEdit ? `
-                <button class="action-btn" onclick="openEditHikeModal('${h.id}')" title="수정">수정</button>
-                <button class="action-btn delete" onclick="deleteHike('${h.id}')" title="삭제">×</button>
-              ` : ''}
-            </div>
-            <div class="meta">
-              <span>${h.dist}</span>
-              <span>${h.gain}</span>
-              <span class="grade" title="난이도 ${h.grade}">
-                <i class="${h.grade >= 1 ? 'on' : ''}"></i>
-                <i class="${h.grade >= 2 ? 'on' : ''}"></i>
-                <i class="${h.grade >= 3 ? 'on' : ''}"></i>
-              </span>
-              <span class="host">${h.host}</span>
-              <span class="rsvp-badge">참가 ${rsvpCount}명</span>
-              ${h.notes ? `<span>${h.notes}</span>` : ''}
-            </div>
-          </div>
-          <div class="tag">${h.tag}</div>
-        </article>
-      `;
-    }).join("");
+    ` : paginatedRegular.map(h =>
+      renderHikeCard(h, currentUser, `<div class="tag">${escapeHtml(h.tag)}</div>`)
+    ).join("");
 
     renderPagination(regularHikes.length, currentRegularPage, "regular-pagination", "changeRegularPage");
 
@@ -2888,69 +3244,61 @@
 
     specialContainer.innerHTML = paginatedSpecial.length === 0 ? `
       <div style="padding:1.5rem; text-align:center; color:var(--muted); font-size:0.85rem;">예정된 특별 산행이 없습니다.</div>
-    ` : paginatedSpecial.map(h => {
-      const rsvpCount = (h.rsvps || []).length;
-      const canEdit = currentUser && (currentUser === h.host || currentUser === 'ihiker');
-      return `
-        <article class="hike">
-          <div class="when">
-            ${h.date}<small>${h.day || ""}</small>
-            ${h.time ? `<span class="time">${h.time}</span>` : ''}
-          </div>
-          <div class="what">
-            <div class="name">
-              <button type="button" class="hike-title-link" onclick="openHikeDetail('${h.id}')" title="상세 지도 및 참가 신청하기">
-                ${h.name}
-              </button>
-              ${canEdit ? `
-                <button class="action-btn" onclick="openEditHikeModal('${h.id}')" title="수정">수정</button>
-                <button class="action-btn delete" onclick="deleteHike('${h.id}')" title="삭제">×</button>
-              ` : ''}
-            </div>
-            <div class="meta">
-              <span>${h.dist}</span>
-              <span>${h.gain}</span>
-              <span class="grade" title="난이도 ${h.grade}">
-                <i class="${h.grade >= 1 ? 'on' : ''}"></i>
-                <i class="${h.grade >= 2 ? 'on' : ''}"></i>
-                <i class="${h.grade >= 3 ? 'on' : ''}"></i>
-              </span>
-              <span class="host">${h.host}</span>
-              <span class="rsvp-badge">참가 ${rsvpCount}명</span>
-              ${h.notes ? `<span>${h.notes}</span>` : ''}
-            </div>
-          </div>
-          <div class="tag hot">특별</div>
-        </article>
-      `;
-    }).join("");
+    ` : paginatedSpecial.map(h =>
+      renderHikeCard(h, currentUser, `<div class="tag hot">특별</div>`)
+    ).join("");
 
     renderPagination(specialHikes.length, currentSpecialPage, "special-pagination", "changeSpecialPage");
   }
 
   window.deleteHike = async function(id) {
     if (!confirm("해당 산행 일정을 삭제하시겠습니까?")) return;
-    await db.collection("hikes").doc(id).delete();
+    try {
+      await db.collection("hikes").doc(id).delete();
+    } catch (err) {
+      console.error("산행 일정 삭제 실패:", err);
+      alert(`산행 일정을 삭제하지 못했습니다.\n(${err.code || err.message})`);
+    }
   };
 
   /* ── Report Render ─────────────────────────────────────────────────── */
   function renderReports() {
     const container = document.getElementById("report-list");
     const currentUser = getCurrentUser();
-    const isRegular = isRegularMember(currentUser);
+
+    if (reportsState.length === 0) {
+      container.innerHTML = `
+        <div style="padding:1.5rem; text-align:center; color:var(--muted); font-size:0.85rem;">
+          등록된 산행 후기가 없습니다. 다녀온 산행 후기를 남겨 주세요!
+        </div>
+      `;
+      return;
+    }
 
     container.innerHTML = reportsState.map(r => {
       const ytThumb = getYouTubeThumbnail(r.youtube);
       const firstPhoto = (r.photos && r.photos.length > 0) ? r.photos[0] : null;
-      const displayThumb = ytThumb || firstPhoto || "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=600&q=80";
-      const canEdit = currentUser && (r.by.includes(currentUser) || currentUser === 'ihiker');
+      const displayThumb = safeImageUrl(ytThumb || firstPhoto) || "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=600&q=80";
+      const canEdit = currentUser && ((r.by || "").includes(currentUser) || isAdmin());
+
+      // 공개 범위는 후기마다 다릅니다. 배지는 그 후기의 범위와,
+      // 지금 보는 사람이 열람 가능한지를 함께 알려 줍니다.
+      const isPublic = isReportPublic(r);
+      const canRead = canReadReport(r, currentUser);
+      const badgeText = isPublic
+        ? (canRead ? '🔓 전체 공개' : '🔓 전체 공개 · 로그인 필요')
+        : (canRead ? '🔒 정회원 전용 · 열람가능' : '🔒 정회원 전용');
+      const badgeColor = canRead ? 'var(--forest)' : 'var(--accent)';
+      const lockedText = isPublic
+        ? '로그인하시면 전문과 영상을 보실 수 있습니다.'
+        : '본 후기는 정회원 전용 콘텐츠입니다. 정회원 승급 후 영상과 상세 기록을 확인하실 수 있습니다.';
 
       return `
         <article class="report">
           <div style="display:flex; justify-content:space-between; align-items:center;">
-            <div class="kind">${r.kind}</div>
-            <span style="font-family:var(--f-mono); font-size:0.65rem; color:${isRegular ? 'var(--forest)' : 'var(--accent)'}; font-weight:500;">
-              ${isRegular ? '🔓 정회원 열람가능' : '🔒 정회원 전용'}
+            <div class="kind">${escapeHtml(r.kind)}</div>
+            <span style="font-family:var(--f-mono); font-size:0.65rem; color:${badgeColor}; font-weight:500;">
+              ${badgeText}
             </span>
           </div>
 
@@ -2961,12 +3309,12 @@
 
           <h3>
             <button type="button" class="report-title-link" onclick="openReportDetail('${r.id}')" title="후기 전문 및 영상 보기">
-              ${r.title}
+              ${escapeHtml(r.title)}
             </button>
           </h3>
-          <p>${isRegular ? r.content : '본 후기는 정회원 전용 콘텐츠입니다. 정회원 승급 후 영상과 상세 기록을 확인하실 수 있습니다.'}</p>
+          <p>${canRead ? escapeHtml(r.content) : lockedText}</p>
           <div class="by">
-            <span>${r.by}</span>
+            <span>${escapeHtml(r.by)}</span>
             ${canEdit ? `
               <div style="display:flex; gap:0.25rem;">
                 <button class="action-btn" onclick="openEditReportModal('${r.id}')" title="수정">수정</button>
@@ -2980,8 +3328,26 @@
   }
 
   window.deleteReport = async function(id) {
+    const currentUser = getCurrentUser();
+    const rep = reportsState.find(r => r.id === id);
+
+    if (!currentUser) {
+      alert("로그인 후 삭제하실 수 있습니다.");
+      openAuthModal(false);
+      return;
+    }
+    if (rep && !(rep.by || "").includes(currentUser) && !isAdmin()) {
+      alert("본인이 작성한 후기만 삭제할 수 있습니다.");
+      return;
+    }
     if (!confirm("해당 산행 후기를 삭제하시겠습니까?")) return;
-    await db.collection("reports").doc(id).delete();
+
+    try {
+      await db.collection("reports").doc(id).delete();
+    } catch (err) {
+      console.error("후기 삭제 실패:", err);
+      alert(`후기를 삭제하지 못했습니다.\n(${err.code || err.message})`);
+    }
   };
 
   /* ── Hike Add & Edit Modal Handlers ────────────────────────────────── */
@@ -3045,15 +3411,21 @@
       isHot: document.getElementById("hike-type").value === "특별"
     };
 
-    if (editId) {
-      await db.collection("hikes").doc(editId).update(hikeData);
-    } else {
-      hikeData.rsvps = [];
-      await db.collection("hikes").add(hikeData);
+    try {
+      if (editId) {
+        await db.collection("hikes").doc(editId).update(hikeData);
+      } else {
+        hikeData.rsvps = [];
+        // 규칙이 소유자를 확인할 수 있도록 작성자 uid를 함께 남깁니다.
+        hikeData.ownerUid = getCurrentUid();
+        await db.collection("hikes").add(hikeData);
+      }
+      document.getElementById("hike-form").reset();
+      hikeModal.close();
+    } catch (err) {
+      console.error("산행 일정 저장 실패:", err);
+      alert(`산행 일정을 저장하지 못했습니다.\n(${err.code || err.message})`);
     }
-    
-    document.getElementById("hike-form").reset();
-    hikeModal.close();
   });
 
   /* ── Report Add & Edit Modal Handlers ──────────────────────────────── */
@@ -3071,6 +3443,8 @@
     document.getElementById("report-submit-btn").innerText = "후기 등록";
     document.getElementById("report-form").reset();
     document.getElementById("report-by").value = `${currentUser} · ${new Date().getMonth() + 1}월 ${new Date().getDate()}일`;
+    // 새 후기는 전체 공개가 기본입니다.
+    document.getElementById("report-visibility").value = "all";
     reportModal.showModal();
   });
 
@@ -3083,6 +3457,7 @@
     document.getElementById("report-submit-btn").innerText = "수정 완료";
 
     document.getElementById("report-kind").value = rep.kind || "주말 산행";
+    document.getElementById("report-visibility").value = reportVisibility(rep);
     document.getElementById("report-by").value = rep.by || "";
     document.getElementById("report-title").value = rep.title || "";
     document.getElementById("report-youtube").value = rep.youtube || "";
@@ -3111,26 +3486,44 @@
       }
     }
 
+    // "all"(전체 공개) 또는 "regular"(정회원 전용) 두 값만 저장합니다.
+    const visibility = document.getElementById("report-visibility").value === "all" ? "all" : "regular";
+
     if (editId) {
       const updateData = {
         kind: document.getElementById("report-kind").value,
+        visibility: visibility,
         title: document.getElementById("report-title").value.trim(),
         youtube: document.getElementById("report-youtube").value.trim(),
         content: document.getElementById("report-content").value.trim(),
         by: document.getElementById("report-by").value.trim()
       };
       if (photoDataUrls.length > 0) updateData.photos = photoDataUrls;
-      await db.collection("reports").doc(editId).update(updateData);
+      try {
+        await db.collection("reports").doc(editId).update(updateData);
+      } catch (err) {
+        console.error("후기 수정 실패:", err);
+        alert(`후기를 수정하지 못했습니다.\n(${err.code || err.message})`);
+        return;
+      }
     } else {
       const newReport = {
         kind: document.getElementById("report-kind").value,
+        visibility: visibility,
         title: document.getElementById("report-title").value.trim(),
         youtube: document.getElementById("report-youtube").value.trim(),
         content: document.getElementById("report-content").value.trim(),
         by: document.getElementById("report-by").value.trim(),
+        ownerUid: getCurrentUid(),
         photos: photoDataUrls
       };
-      await db.collection("reports").add(newReport);
+      try {
+        await db.collection("reports").add(newReport);
+      } catch (err) {
+        console.error("후기 등록 실패:", err);
+        alert(`후기를 등록하지 못했습니다.\n(${err.code || err.message})`);
+        return;
+      }
     }
 
     document.getElementById("report-form").reset();
