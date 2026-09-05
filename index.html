@@ -2622,15 +2622,23 @@
           createdAt: new Date().toISOString()
         });
 
-        await db.collection("members").add({
-          name: username,
-          ownerUid: cred.user.uid,
-          status: "three",
-          count: 0,
-          recentHike: "-",
-          date: new Date().toISOString().split("T")[0],
-          memo: "신규 가입 회원 (3회 참여 조건 대상)"
-        });
+        // 가입하면 회원 명단에 신입 회원으로 자동 등록됩니다.
+        // 명단 등록이 실패하더라도 계정 자체는 이미 만들어졌으므로 가입은 성공 처리합니다.
+        try {
+          if (!membersState.some(m => m.name === username)) {
+            await db.collection("members").add({
+              name: username,
+              ownerUid: cred.user.uid,
+              status: "three",
+              count: 0,
+              recentHike: "-",
+              date: new Date().toISOString().split("T")[0],
+              memo: "신규 가입 회원 (3회 참여 조건 대상)"
+            });
+          }
+        } catch (memberErr) {
+          console.error("회원 명단 등록 실패:", memberErr);
+        }
 
         authModal.close();
       } catch (err) {
@@ -2885,41 +2893,82 @@
       return;
     }
 
-    tbody.innerHTML = members.map(m => `
+    tbody.innerHTML = members.map(m => {
+      const isRegular = m.status === 'regular';
+      const canDelete = currentUser && (currentUser === m.name || isAdmin());
+
+      return `
       <tr>
         <td style="font-weight:600; color:var(--ink);">${escapeHtml(m.name)}</td>
         <td>
-          <span class="role-badge ${m.status === 'regular' ? 'regular' : 'three-plus'}">
-            ${m.status === 'regular' ? '정회원' : '신입 회원'}
+          <span class="role-badge ${isRegular ? 'regular' : 'three-plus'}">
+            ${isRegular ? '정회원' : '신입 회원'}
           </span>
         </td>
         <td style="font-family:var(--f-mono);">${escapeHtml(m.count)}회</td>
         <td>${escapeHtml(m.recentHike || '-')}</td>
         <td style="font-family:var(--f-mono); font-size:0.78rem;">${escapeHtml(m.date)}</td>
         <td>
-          ${(currentUser && (currentUser === m.name || isAdmin())) ? `
-            <button class="action-btn delete" onclick="deleteMember('${m.id}')" title="명단 삭제">삭제</button>
-          ` : `<span style="color:var(--hairline); font-size:0.75rem;">-</span>`}
+          <div style="display:flex; gap:0.25rem; justify-content:flex-end; flex-wrap:wrap;">
+            ${isAdmin() ? `
+              <button class="action-btn" onclick="setMemberStatus('${m.id}', '${isRegular ? 'three' : 'regular'}')"
+                      title="${isRegular ? '신입 회원으로 되돌리기' : '정회원으로 등업'}">
+                ${isRegular ? '등급 내리기' : '정회원 등업'}
+              </button>
+            ` : ''}
+            ${canDelete ? `
+              <button class="action-btn delete" onclick="deleteMember('${m.id}')" title="명단 삭제">삭제</button>
+            ` : ''}
+            ${(!isAdmin() && !canDelete) ? `<span style="color:var(--hairline); font-size:0.75rem;">-</span>` : ''}
+          </div>
         </td>
       </tr>
-    `).join("");
+    `;
+    }).join("");
   }
+
+  // 등급 변경은 관리자만. 규칙에서도 같은 조건을 강제합니다.
+  window.setMemberStatus = async function(id, status) {
+    if (!isAdmin()) {
+      alert("회원 등급 변경은 관리자만 할 수 있습니다.");
+      return;
+    }
+    const m = membersState.find(x => x.id === id);
+    if (!m) return;
+
+    const label = status === 'regular' ? '정회원으로 등업' : '신입 회원으로 되돌리기';
+    if (!confirm(`${m.name} 님을 ${label} 하시겠습니까?`)) return;
+
+    try {
+      await db.collection("members").doc(id.toString()).update({ status: status });
+    } catch (err) {
+      console.error("등급 변경 실패:", err);
+      alert(`등급을 변경하지 못했습니다.\n(${err.code || err.message})`);
+    }
+  };
 
   window.deleteMember = async function(id) {
     if (!confirm("해당 회원을 명단에서 삭제하시겠습니까?")) return;
-    await db.collection("members").doc(id.toString()).delete();
+    try {
+      await db.collection("members").doc(id.toString()).delete();
+    } catch (err) {
+      console.error("명단 삭제 실패:", err);
+      alert(`명단에서 삭제하지 못했습니다.\n(${err.code || err.message})`);
+    }
   };
 
   const memberModal = document.getElementById("member-modal");
   document.getElementById("open-member-modal-btn").addEventListener("click", () => {
+    // 가입하면 명단에 자동으로 올라갑니다. 이 버튼은 관리자가 직접 손볼 때만 씁니다.
+    // 예전에는 누구나 열 수 있어서, 자기 이름으로 '정회원' 줄을 새로 만들 수 있었습니다.
+    if (!isAdmin()) {
+      alert("회원 명단 등록은 관리자만 할 수 있습니다.\n간편 가입을 하시면 명단에 자동으로 등록됩니다.");
+      return;
+    }
     if (activeMemberFilter === 'three') {
       document.getElementById("member-status").value = 'three';
     } else if (activeMemberFilter === 'regular') {
       document.getElementById("member-status").value = 'regular';
-    }
-    const currentUser = getCurrentUser();
-    if (currentUser) {
-      document.getElementById("member-name").value = currentUser;
     }
     memberModal.showModal();
   });
@@ -2928,8 +2977,24 @@
 
   document.getElementById("member-form").addEventListener("submit", async (e) => {
     e.preventDefault();
+    if (!isAdmin()) {
+      alert("회원 명단 등록은 관리자만 할 수 있습니다.");
+      return;
+    }
+
+    const name = document.getElementById("member-name").value.trim();
+    if (!name) {
+      alert("회원 이름을 입력해 주세요.");
+      return;
+    }
+    // 같은 이름이 두 줄로 남지 않게 막습니다. (지금 명단에 중복이 생긴 원인입니다.)
+    if (membersState.some(m => m.name === name)) {
+      alert(`"${name}" 님은 이미 명단에 있습니다.\n등급을 바꾸시려면 그 줄의 [정회원 등업] 버튼을 눌러 주세요.`);
+      return;
+    }
+
     const newMember = {
-      name: document.getElementById("member-name").value.trim(),
+      name: name,
       status: document.getElementById("member-status").value,
       count: parseInt(document.getElementById("member-count").value, 10) || 1,
       recentHike: document.getElementById("member-recent-hike").value.trim(),
@@ -2938,9 +3003,14 @@
       ownerUid: getCurrentUid()
     };
 
-    await db.collection("members").add(newMember);
-    document.getElementById("member-form").reset();
-    memberModal.close();
+    try {
+      await db.collection("members").add(newMember);
+      document.getElementById("member-form").reset();
+      memberModal.close();
+    } catch (err) {
+      console.error("명단 등록 실패:", err);
+      alert(`명단에 등록하지 못했습니다.\n(${err.code || err.message})`);
+    }
   });
 
   /* ── Intro Board View & Handlers ───────────────────────────────────── */
