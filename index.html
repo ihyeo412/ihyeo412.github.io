@@ -1254,6 +1254,80 @@
     font-size: 0.68rem;
     color: var(--muted);
   }
+  /* ── 새로 가입한 회원 ───────────────────────────────────────────── */
+  .newcomers {
+    margin-top: 1.8rem;
+    padding-top: 1.2rem;
+    border-top: 1px solid var(--hairline);
+  }
+  .newcomers[hidden] { display: none; }
+  .newcomers-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.9rem;
+  }
+  .newcomers-head h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+  .newcomer-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .newcomer-chip {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.45rem;
+    padding: 0.32rem 0.7rem;
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    background: var(--surface);
+    font-size: 0.84rem;
+    color: var(--ink);
+  }
+  .newcomer-chip.fresh {
+    border-color: var(--accent-soft);
+    background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+  }
+  .newcomer-chip .when {
+    font-family: var(--f-mono);
+    font-size: 0.66rem;
+    color: var(--muted);
+  }
+  .newcomer-chip .new-flag {
+    font-family: var(--f-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.06em;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* 명단에서 실제 가입 계정을 구분하는 표시 */
+  .account-flag {
+    margin-left: 0.4rem;
+    font-family: var(--f-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.04em;
+    color: var(--forest);
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    padding: 0.05rem 0.35rem;
+    white-space: nowrap;
+    font-weight: 400;
+  }
+  .members-table tr.group-divider td {
+    padding-top: 1.4rem;
+    font-family: var(--f-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    border-bottom: 1px solid var(--hairline);
+  }
+
   .info-empty {
     grid-column: 1 / -1;
     padding: 1.5rem;
@@ -1520,6 +1594,14 @@
           <h3>정회원 등업 ↗</h3>
           <p>신입 회원 3회 참여 후 정회원으로 등업된 전체 회원 명단입니다. 산행 후기 열람 및 특별 산행이 가능합니다.</p>
         </div>
+      </div>
+
+      <div class="newcomers" id="newcomers" hidden>
+        <div class="newcomers-head">
+          <h3>새로 가입한 회원</h3>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="openMembersBoardView('three')">전체 명단 보기 ↗</button>
+        </div>
+        <div class="newcomer-chips" id="newcomer-chips"></div>
       </div>
     </section>
 
@@ -2435,6 +2517,7 @@
       });
       membersState.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
       renderMembersTable();
+      renderNewcomers();
       renderAuthNav();
       renderReports();
     }, onSyncError("회원 명단"));
@@ -2871,35 +2954,48 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  // 간편 가입으로 만들어진 줄에는 ownerUid 가 있습니다.
+  // 관리자가 직접 타이핑해 넣은 줄과 구분하는 근거입니다.
+  const isSignupAccount = (m) => !!m.ownerUid;
+
   function renderMembersTable() {
     const tbody = document.getElementById("members-table-body");
     let members = [...membersState];
-    const currentUser = getCurrentUser();
+    let pending = [];
 
     if (activeMemberFilter === 'three') {
       members = members.filter(m => m.status === 'three');
     } else if (activeMemberFilter === 'regular') {
+      // 정회원 명단에서는 정회원을 먼저 보여주고,
+      // 그 아래에 아직 등업되지 않은 '간편 가입' 회원을 등업 대기로 함께 보여 줍니다.
+      // (예전에는 정회원만 걸러서, 새로 가입한 분이 이 화면에 아예 보이지 않았습니다.)
+      pending = members.filter(m => m.status !== 'regular' && isSignupAccount(m));
       members = members.filter(m => m.status === 'regular');
     }
 
-    if (members.length === 0) {
+    if (members.length === 0 && pending.length === 0) {
       tbody.innerHTML = `
         <tr>
           <td colspan="6" style="text-align:center; padding:2rem; color:var(--muted);">
-            등록된 회원 명단이 없습니다. 우측 상단 버튼을 눌러 명단을 등록해주세요.
+            등록된 회원 명단이 없습니다.
           </td>
         </tr>
       `;
       return;
     }
 
-    tbody.innerHTML = members.map(m => {
+    const currentUser = getCurrentUser();
+
+    const rows = (list) => list.map(m => {
       const isRegular = m.status === 'regular';
       const canDelete = currentUser && (currentUser === m.name || isAdmin());
 
       return `
       <tr>
-        <td style="font-weight:600; color:var(--ink);">${escapeHtml(m.name)}</td>
+        <td style="font-weight:600; color:var(--ink);">
+          ${escapeHtml(m.name)}
+          ${isSignupAccount(m) ? `<span class="account-flag" title="간편 가입으로 등록된 계정입니다">가입 계정</span>` : ''}
+        </td>
         <td>
           <span class="role-badge ${isRegular ? 'regular' : 'three-plus'}">
             ${isRegular ? '정회원' : '신입 회원'}
@@ -2924,6 +3020,61 @@
         </td>
       </tr>
     `;
+    }).join("");
+
+    tbody.innerHTML = rows(members) + (pending.length > 0 ? `
+      <tr class="group-divider">
+        <td colspan="6">등업 대기 · 간편 가입 회원 ${pending.length}명</td>
+      </tr>
+      ${rows(pending)}
+    ` : '');
+  }
+
+  /* ── 새로 가입한 회원 (메인 화면) ─────────────────────────────────── */
+  const NEWCOMER_LIMIT = 8;
+  const NEWCOMER_FRESH_DAYS = 14;   // NEW 배지를 붙이는 기간
+  const NEWCOMER_WINDOW_DAYS = 90;  // "새로 가입"으로 볼 기간
+
+  // 가입일은 toISOString() 으로 만든 UTC 날짜 문자열입니다.
+  // 로컬 시간으로 비교하면 시차 때문에 오늘 가입한 사람이 어제로 계산될 수 있어,
+  // 양쪽 모두 UTC 자정 기준으로 맞춥니다.
+  function daysSince(dateStr) {
+    if (!dateStr) return Infinity;
+    const then = Date.parse(dateStr + "T00:00:00Z");
+    if (Number.isNaN(then)) return Infinity;
+    const now = new Date();
+    const todayUTC = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+    return Math.round((todayUTC - then) / 86400000);
+  }
+
+  function renderNewcomers() {
+    const box = document.getElementById("newcomers");
+    const chips = document.getElementById("newcomer-chips");
+    if (!box || !chips) return;
+
+    // 간편 가입으로 만들어진 줄 중 최근 것만, 등록일 최신순으로 보여 줍니다.
+    const joined = membersState
+      .filter(m => isSignupAccount(m) && daysSince(m.date) <= NEWCOMER_WINDOW_DAYS)
+      .sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))
+      .slice(0, NEWCOMER_LIMIT);
+
+    if (joined.length === 0) {
+      box.hidden = true;
+      chips.innerHTML = "";
+      return;
+    }
+
+    box.hidden = false;
+    chips.innerHTML = joined.map(m => {
+      const when = String(m.date || "");
+      const fresh = daysSince(when) <= NEWCOMER_FRESH_DAYS;
+      return `
+        <span class="newcomer-chip ${fresh ? 'fresh' : ''}">
+          <span>${escapeHtml(m.name)}</span>
+          ${fresh ? `<span class="new-flag">NEW</span>` : ''}
+          ${when ? `<span class="when">${escapeHtml(when)}</span>` : ''}
+        </span>
+      `;
     }).join("");
   }
 
