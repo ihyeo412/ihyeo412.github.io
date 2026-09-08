@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<title>ihiker.org — 베이 지역 한인 산악회</title>
+<title>iHike — 베이 지역 한인 산악회</title>
 <meta name="description" content="샌프란시스코에서 몬트레이까지, 그리고 타호와 요세미티. 매주 주말 함께 걷는 열린 산악회입니다. 산행 일정, 후기, 가입 안내.">
 <link rel="canonical" href="https://ihiker.org/">
 
@@ -12,9 +12,9 @@
 <meta name="theme-color" content="#121814" media="(prefers-color-scheme: dark)">
 
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="ihiker.org">
+<meta property="og:site_name" content="iHike">
 <meta property="og:locale" content="ko_KR">
-<meta property="og:title" content="ihiker.org — 베이 지역 한인 산악회">
+<meta property="og:title" content="iHike — 베이 지역 한인 산악회">
 <meta property="og:description" content="매주 주말 함께 걷는 열린 산악회. 산행 일정, 후기, 가입 안내.">
 <meta property="og:url" content="https://ihiker.org/">
 <meta name="twitter:card" content="summary_large_image">
@@ -1019,6 +1019,8 @@
     height: 100%;
     object-fit: cover;
     transition: transform 0.2s;
+    /* 목록에서는 4:3으로 잘라 보여 주고, 클릭하면 라이트박스에서 전체를 봅니다 */
+    cursor: zoom-in;
   }
   .gallery-img-wrapper img:hover {
     transform: scale(1.03);
@@ -1300,11 +1302,87 @@
     font-size: 0.68rem;
     color: var(--muted);
   }
+  /* ── 공지 ───────────────────────────────────────────────────────── */
+  .notices {
+    margin-top: clamp(1.8rem, 5vw, 2.6rem);
+    padding: 1.2rem 1.3rem;
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius);
+    background: var(--surface);
+  }
+  .notices[hidden] { display: none; }
+  .notices-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.9rem;
+  }
+  .notices-head h3 {
+    font-size: 1rem;
+    font-weight: 600;
+  }
+  .notice-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+  .notice-item {
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--hairline);
+  }
+  .notice-item:first-child {
+    padding-top: 0;
+    border-top: none;
+  }
+  .notice-item-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+  .notice-title {
+    font-family: var(--f-display);
+    font-size: 0.98rem;
+    font-weight: 600;
+    line-height: 1.4;
+    min-width: 0;
+  }
+  .notice-pin {
+    margin-right: 0.35rem;
+    font-size: 0.8rem;
+    color: var(--accent);
+  }
+  .notice-body {
+    margin-top: 0.4rem;
+    font-size: 0.88rem;
+    line-height: 1.7;
+    color: var(--ink-soft);
+    white-space: pre-line;
+  }
+  .notice-by {
+    margin-top: 0.5rem;
+    font-family: var(--f-mono);
+    font-size: 0.68rem;
+    color: var(--muted);
+  }
+  .notice-empty {
+    font-size: 0.85rem;
+    color: var(--muted);
+    text-align: center;
+    padding: 0.8rem;
+  }
+
   /* ── 새로 가입한 회원 ───────────────────────────────────────────── */
   .newcomers {
-    margin-top: 1.8rem;
-    padding-top: 1.2rem;
-    border-top: 1px solid var(--hairline);
+    margin-top: 2rem;
+    padding: 1.1rem 1.2rem;
+    border: 1px solid var(--hairline);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius);
+    background: var(--surface);
   }
   .newcomers[hidden] { display: none; }
   .newcomers-head {
@@ -1350,6 +1428,71 @@
     letter-spacing: 0.06em;
     color: var(--accent);
     font-weight: 600;
+  }
+
+  .signup-notice {
+    background: var(--surface-2);
+    border: 1px solid var(--hairline);
+    border-left: 3px solid var(--forest);
+    border-radius: var(--radius);
+    padding: 0.8rem 1rem;
+    font-size: 0.82rem;
+    line-height: 1.65;
+    color: var(--ink-soft);
+  }
+  .signup-notice[hidden] { display: none; }
+  .signup-notice button {
+    display: block;
+    margin-top: 0.5rem;
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--forest);
+    font-size: 0.8rem;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  /* ── 가입 승인 상태 배지 ────────────────────────────────────────── */
+  .intro-status {
+    font-family: var(--f-mono);
+    font-size: 0.64rem;
+    letter-spacing: 0.04em;
+    padding: 0.12rem 0.5rem;
+    border-radius: 999px;
+    white-space: nowrap;
+    border: 1px solid var(--hairline);
+  }
+  .intro-status.pending  { color: var(--accent); border-color: var(--accent-soft); }
+  .intro-status.approved { color: var(--forest); border-color: var(--forest-soft); }
+  .intro-status.joined   { color: var(--muted); }
+  .action-btn.approve { color: var(--forest); font-weight: 600; }
+  .action-btn.approve:hover { color: var(--accent); }
+
+  /* ── 회원 탈퇴 ──────────────────────────────────────────────────── */
+  .btn-danger {
+    background: #c9453f;
+    border-color: #c9453f;
+    color: #fff;
+  }
+  .btn-danger:hover { background: #a8332e; border-color: #a8332e; }
+  .withdraw-warning {
+    background: color-mix(in srgb, #c9453f 8%, var(--surface));
+    border: 1px solid color-mix(in srgb, #c9453f 30%, var(--hairline));
+    border-radius: var(--radius);
+    padding: 0.9rem 1.1rem;
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+  }
+  .withdraw-warning p { margin: 0 0 0.5rem; }
+  .withdraw-warning ul {
+    margin: 0;
+    padding-left: 1.1rem;
+    list-style: disc;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    line-height: 1.6;
   }
 
   /* 명단에서 실제 가입 계정을 구분하는 표시 */
@@ -1475,9 +1618,21 @@
   #lightbox::backdrop { background: rgba(0, 0, 0, 0.82); }
   #lightbox img {
     display: block;
+    /* 잘라내지 않고 화면에 맞춰 축소만 합니다. 작은 사진은 원본 크기 그대로 */
     max-width: 92vw;
     max-height: 92vh;
+    width: auto;
+    height: auto;
+    object-fit: contain;
     border-radius: var(--radius);
+    cursor: zoom-out;
+  }
+  #lightbox .lb-hint {
+    margin-top: 0.6rem;
+    text-align: center;
+    font-family: var(--f-mono);
+    font-size: 0.68rem;
+    color: rgba(255, 255, 255, 0.75);
   }
 
   footer {
@@ -1515,7 +1670,7 @@
 <div class="wrap">
 
   <header class="masthead">
-    <a class="mark" onclick="showMainView()">ihiker<span>.org</span></a>
+    <a class="mark" onclick="showMainView()">iHike<span> 산악회</span></a>
     <nav aria-label="주 메뉴">
       <a href="#schedule" onclick="showMainView()">산행 일정</a>
       <a href="#reports" onclick="showMainView()">산행 후기</a>
@@ -1529,11 +1684,11 @@
   <div id="main-view">
     <section class="hero">
       <div class="eyebrow">San Francisco — Monterey · Tahoe · Yosemite</div>
-      <h1>산이 좋아서, 매주 갑니다.</h1>
+      <h1>iHike에 오신 것을 환영합니다.</h1>
       <p class="lede">
-        샌프란시스코에서 몬트레이까지 이어지는 해안 산맥, 그리고 동쪽의 타호와 요세미티.
-        바쁜 일상을 잠시 내려놓고 함께 걷는 열린 산악회입니다. 성별·나이·직업과 상관없이
-        누구나 오실 수 있습니다.
+        iHike는 샌프란시스코에서 몬트레이까지 이어지는 해안 산맥, 그리고 동쪽의 타호와
+        요세미티를 매주 주말 함께 걷는 열린 산악회입니다. 바쁜 일상을 잠시 내려놓고
+        같이 걸어요. 성별·나이·직업과 상관없이 누구나 오실 수 있습니다.
       </p>
       <div class="hero-actions">
         <a class="btn btn-solid" href="#schedule">이번 달 산행 보기</a>
@@ -1563,6 +1718,24 @@
         </div>
       </div>
     </section>
+
+    <!-- ── 공지 (맨 위 그림 바로 아래) ──────────────────────────────── -->
+    <section class="notices" id="notices" hidden>
+      <div class="notices-head">
+        <h3>📢 공지</h3>
+        <button type="button" class="btn btn-solid btn-sm" id="open-notice-modal-btn" hidden>+ 공지 작성</button>
+      </div>
+      <div class="notice-list" id="notice-list"></div>
+    </section>
+
+    <!-- ── 새로 가입한 회원 (맨 앞) ─────────────────────────────────── -->
+    <div class="newcomers" id="newcomers" hidden>
+      <div class="newcomers-head">
+        <h3>새로 가입한 회원</h3>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="openMembersBoardView('all')">전체 명단 보기 ↗</button>
+      </div>
+      <div class="newcomer-chips" id="newcomer-chips"></div>
+    </div>
 
     <!-- ── Schedule Section ────────────────────────────────────────── -->
     <section class="section" id="schedule">
@@ -1642,13 +1815,6 @@
         </div>
       </div>
 
-      <div class="newcomers" id="newcomers" hidden>
-        <div class="newcomers-head">
-          <h3>새로 가입한 회원</h3>
-          <button type="button" class="btn btn-ghost btn-sm" onclick="openMembersBoardView('all')">전체 명단 보기 ↗</button>
-        </div>
-        <div class="newcomer-chips" id="newcomer-chips"></div>
-      </div>
     </section>
 
     <!-- ── Info Section ────────────────────────────────────────────── -->
@@ -1673,7 +1839,7 @@
     <div class="detail-card">
       <div class="detail-header">
         <div class="eyebrow">STEP 01 · Community Charter</div>
-        <h2 class="detail-title">ihiker 동행 수칙 및 회칙</h2>
+        <h2 class="detail-title">iHike 동행 수칙 및 회칙</h2>
       </div>
 
       <div class="rules-detail-content">
@@ -1683,7 +1849,7 @@
         </div>
         <div class="rules-detail-item">
           <h4>🤝 2. 비영리성 및 상업적 목적 금지</h4>
-          <p>ihiker는 순수한 열린 산악 커뮤니티입니다. 산악회를 개인의 상업적 영리 활동이나 금전적 거래, 특정 이익을 취하기 위한 수단으로 활용하는 것을 엄격히 금합니다.</p>
+          <p>iHike는 순수한 열린 산악 커뮤니티입니다. 산악회를 개인의 상업적 영리 활동이나 금전적 거래, 특정 이익을 취하기 위한 수단으로 활용하는 것을 엄격히 금합니다.</p>
         </div>
         <div class="rules-detail-item">
           <h4>🛡️ 3. 상호 존중과 폭력 행위 무관용 원칙</h4>
@@ -1723,7 +1889,7 @@
     <div class="detail-card">
       <div class="detail-header" style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:1rem;">
         <div>
-          <div class="eyebrow">STEP 02 · Welcome to ihiker</div>
+          <div class="eyebrow">STEP 02 · Welcome to iHike</div>
           <h2 class="detail-title">가입 인사 게시판</h2>
         </div>
         <button type="button" class="btn btn-solid btn-sm" id="open-intro-modal-btn">+ 가입 인사 작성하기</button>
@@ -1871,7 +2037,7 @@
       <div class="form-grid">
         <label class="full">
           <span>Username (아이디)</span>
-          <input type="text" id="auth-username" placeholder="예: ihiker" required autocomplete="username">
+          <input type="text" id="auth-username" placeholder="예: 산대장" required autocomplete="username">
         </label>
         <label class="full">
           <span>Password (비밀번호)</span>
@@ -1879,7 +2045,16 @@
         </label>
       </div>
 
-      <p id="auth-error-msg" style="display:none; color:#d9534f; font-size:0.8rem; margin:0;"></p>
+      <div id="signup-notice" class="signup-notice" hidden>
+        가입은 <b>운영진 승인</b>이 필요합니다.
+        먼저 <b>가입 인사</b>를 남기시면 확인 후 승인해 드리고,
+        그다음 여기서 <b>같은 닉네임</b>과 <b>원하는 비밀번호</b>로 가입하실 수 있습니다.
+        <button type="button" onclick="document.getElementById('auth-modal').close(); openIntroBoardView();">
+          가입 인사 남기러 가기 ↗
+        </button>
+      </div>
+
+      <p id="auth-error-msg" style="display:none; color:#d9534f; font-size:0.8rem; margin:0; white-space:pre-line;"></p>
 
       <div class="modal-foot" style="justify-content: space-between; align-items: center;">
         <button type="button" id="toggle-auth-mode-btn" style="background:none; border:none; color:var(--forest); font-size:0.82rem; text-decoration:underline; cursor:pointer; padding:0;">
@@ -1917,6 +2092,45 @@
       <div class="modal-foot">
         <button type="button" class="btn btn-ghost btn-sm" id="cancel-change-pwd-btn">취소</button>
         <button type="submit" class="btn btn-solid btn-sm">변경 완료</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ── 회원 탈퇴 ─────────────────────────────────────────────────── -->
+  <dialog id="withdraw-modal" class="modal">
+    <form id="withdraw-form" method="dialog" class="modal-box">
+      <div class="modal-head">
+        <h3>회원 탈퇴</h3>
+        <button type="button" id="close-withdraw-btn" class="close-btn" aria-label="닫기">×</button>
+      </div>
+
+      <div class="withdraw-warning">
+        <p><b>탈퇴하면 되돌릴 수 없습니다.</b></p>
+        <ul>
+          <li>로그인 계정이 삭제되어 같은 닉네임으로 다시 가입해야 합니다.</li>
+          <li>회원 명단에서 빠지며, 정회원 등급도 사라집니다.</li>
+          <li>이미 남기신 <b>산행 후기·일정·가입 인사는 그대로 남습니다.</b>
+              함께 보는 기록이라 지우지 않습니다. 먼저 지우고 싶은 글이 있으면
+              탈퇴 전에 직접 삭제해 주세요.</li>
+        </ul>
+      </div>
+
+      <div class="form-grid">
+        <label class="full">
+          <span>확인을 위해 본인의 닉네임을 입력해 주세요</span>
+          <input type="text" id="withdraw-nickname" placeholder="닉네임" required autocomplete="off">
+        </label>
+        <label class="full">
+          <span>비밀번호</span>
+          <input type="password" id="withdraw-password" placeholder="현재 비밀번호" required autocomplete="current-password">
+        </label>
+      </div>
+
+      <p id="withdraw-error-msg" style="display:none; color:#d9534f; font-size:0.8rem; margin:0;"></p>
+
+      <div class="modal-foot">
+        <button type="button" class="btn btn-ghost btn-sm" id="cancel-withdraw-btn">취소</button>
+        <button type="submit" class="btn btn-solid btn-sm btn-danger" id="withdraw-submit-btn">탈퇴하기</button>
       </div>
     </form>
   </dialog>
@@ -1969,7 +2183,7 @@
         </label>
         <label>
           <span>안내자 (닉네임)</span>
-          <input type="text" id="hike-host" placeholder="예: ihiker" required>
+          <input type="text" id="hike-host" placeholder="예: 산대장" required>
         </label>
         <label class="full">
           <span>만나는 장소 (구글 맵 링크 / 주소 / 주차장명)</span>
@@ -2013,7 +2227,7 @@
         </label>
         <label>
           <span>작성자 및 일자</span>
-          <input type="text" id="report-by" placeholder="예: ihiker · 9월 5일" required>
+          <input type="text" id="report-by" placeholder="예: 산대장 · 9월 5일" required>
         </label>
         <label class="full">
           <span>공개 범위</span>
@@ -2043,6 +2257,39 @@
       <div class="modal-foot">
         <button type="button" class="btn btn-ghost" id="cancel-report-btn">취소</button>
         <button type="submit" class="btn btn-solid" id="report-submit-btn">후기 저장</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ── 공지 작성 / 수정 ──────────────────────────────────────────── -->
+  <dialog id="notice-modal" class="modal">
+    <form id="notice-form" method="dialog" class="modal-box">
+      <input type="hidden" id="notice-edit-id" value="">
+      <div class="modal-head">
+        <h3 id="notice-modal-title">공지 작성</h3>
+        <button type="button" id="close-notice-modal-btn" class="close-btn" aria-label="닫기">×</button>
+      </div>
+
+      <div class="form-grid">
+        <label class="full">
+          <span>공지 제목</span>
+          <input type="text" id="notice-title" placeholder="예: 9월 정기 산행 카풀 안내" required>
+        </label>
+        <label class="full">
+          <span>내용</span>
+          <textarea id="notice-content" rows="6" placeholder="공지 내용을 입력해 주세요." required></textarea>
+        </label>
+        <label class="full">
+          <span>
+            <input type="checkbox" id="notice-pinned" style="width:auto; margin-right:0.4rem;">
+            중요 공지로 표시 (맨 위에 고정)
+          </span>
+        </label>
+      </div>
+
+      <div class="modal-foot">
+        <button type="button" class="btn btn-ghost" id="cancel-notice-btn">취소</button>
+        <button type="submit" class="btn btn-solid" id="notice-submit-btn">공지 등록</button>
       </div>
     </form>
   </dialog>
@@ -2091,14 +2338,15 @@
 
   <dialog id="lightbox" aria-label="사진 크게 보기">
     <img id="lightbox-img" src="" alt="첨부 사진">
+    <div class="lb-hint">아무 곳이나 누르거나 ESC 를 눌러 닫습니다</div>
   </dialog>
 
   <footer>
     <p class="about">
-      ihiker는 모두에게 열린 건전한 산악회를 지향합니다. 각 회원의 자발적인 참여와 봉사로 운영되며,
+      iHike는 모두에게 열린 건전한 산악회를 지향합니다. 각 회원의 자발적인 참여와 봉사로 운영되며,
       정해진 리더도 의무도 없습니다. 산이 좋으면 그것으로 충분합니다.
     </p>
-    <div class="sig">ihiker.org · 회원 일동 · San Francisco Bay Area</div>
+    <div class="sig">iHike · ihiker.org · 회원 일동 · San Francisco Bay Area</div>
   </footer>
 
 </div>
@@ -2137,7 +2385,7 @@
       gmap: "Purisima Creek Redwoods Open Space Preserve, Half Moon Bay, CA",
       alltrails: "https://www.alltrails.com/trail/us/california/purisima-creek-trail-to-harkins-ridge-trail-loop",
       rsvps: [
-        { id: 101, username: "ihiker", msg: "산호세에서 참석합니다. 좋은 산행 기대됩니다!" }
+        { id: 101, username: "iHike 운영진", msg: "산호세에서 참석합니다. 좋은 산행 기대됩니다!" }
       ]
     },
     { 
@@ -2148,7 +2396,7 @@
       dist: "6.0 mi", 
       gain: "+2,200 ft", 
       grade: 2, 
-      host: "ihiker", 
+      host: "iHike 운영진", 
       tag: "정기", 
       notes: "정상 시그니처 폴대 및 베이 조망",
       gmap: "Stanford Avenue Staging Area, Fremont, CA",
@@ -2163,7 +2411,7 @@
       dist: "5.2 mi", 
       gain: "+1,100 ft", 
       grade: 1, 
-      host: "ihiker", 
+      host: "iHike 운영진", 
       tag: "정기", 
       notes: "초보 환영 · 울창한 그늘 트레일",
       gmap: "Huddart Park, 1100 Kings Mountain Rd, Woodside, CA",
@@ -2178,7 +2426,7 @@
       dist: "7.1 mi", 
       gain: "+1,300 ft", 
       grade: 2, 
-      host: "ihiker", 
+      host: "iHike 운영진", 
       tag: "정기", 
       notes: "석회 가마터와 계곡길 탐방",
       gmap: "Fall Creek Unit Henry Cowell Redwoods Felton CA",
@@ -2193,7 +2441,7 @@
       dist: "7.5 mi", 
       gain: "+1,500 ft", 
       grade: 2, 
-      host: "ihiker", 
+      host: "iHike 운영진", 
       tag: "정기", 
       notes: "능선 파노라마 뷰 코스",
       gmap: "Pleasanton Ridge Regional Park Foothill Staging Area, Pleasanton, CA",
@@ -2208,7 +2456,7 @@
       dist: "29.3 mi", 
       gain: "+7,800 ft", 
       grade: 3, 
-      host: "ihiker", 
+      host: "iHike 운영진", 
       tag: "특별", 
       isHot: true, 
       notes: "시에라 백팩킹 퍼밋 확보 인원",
@@ -2224,7 +2472,7 @@
       dist: "19.5 mi", 
       gain: "+3,900 ft", 
       grade: 3, 
-      host: "ihiker", 
+      host: "iHike 운영진", 
       tag: "특별", 
       isHot: true, 
       notes: "가을 단풍 백팩킹 원정",
@@ -2240,7 +2488,7 @@
       title: "레이 레이크스 루프 3박 4일",
       youtube: "https://www.youtube.com/watch?v=ScMzIvxBSi4",
       content: "글렌 패스를 넘던 날 아침이 제일 추웠습니다. 물은 트레일 전 구간에서 맑고 풍부하게 구할 수 있었고, 곰통은 꽉 채워도 4일치가 겨우 들어갑니다.\n\n캠프 자리는 레이 레이크스 북쪽 호숫가가 바람도 덜 타고 경치가 뛰어납니다. 다음 팀을 위해 주요 샘터와 야영지 좌표를 메모로 남깁니다.",
-      by: "ihiker · 8월 21–24일",
+      by: "iHike 운영진 · 8월 21–24일",
       photos: [
         "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=800&q=80",
         "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80"
@@ -2251,7 +2499,7 @@
       title: "안 와 본 사람은 있어도 한 번만 온 사람은 없다",
       youtube: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
       content: "여덟 분이 아주 액티브하게 걸었고, 끝나고는 시원한 식혜와 수박으로 뒷풀이를 했습니다.\n\n후다트는 한여름에도 레드우드 그늘이 깊어서 기온이 5도 이상 낮게 느껴집니다. 초보자분들도 무리 없이 즐길 수 있는 최고의 여름 코스입니다.",
-      by: "ihiker · 8월 29일",
+      by: "iHike 운영진 · 8월 29일",
       photos: [
         "https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=800&q=80"
       ]
@@ -2261,7 +2509,7 @@
       title: "커시드럴 호수에서 클라우즈 레스트까지",
       youtube: "",
       content: "첫날은 선라이즈 레이크, 둘째 날은 리틀 요세미티 밸리에서 묵었습니다.\n\n퍼밋은 커시드럴 레이크스(871번)로 잡았고, 온라인 매진 이후에도 2주 전 취소표 자리가 났습니다. 정상에서 내려다보는 하프돔 뷰가 압권이었습니다.",
-      by: "ihiker · 7월 11–13일",
+      by: "iHike 운영진 · 7월 11–13일",
       photos: [
         "https://images.unsplash.com/photo-1426604966848-d7adac402bff?auto=format&fit=crop&w=800&q=80"
       ]
@@ -2270,14 +2518,14 @@
 
   const defaultIntros = [
     {
-      nickname: "ihiker",
+      nickname: "iHike 운영진",
       location: "산호세 (San Jose)",
       gender: "남성",
       channel: "구글 / 웹 검색",
       bio: "베이 지역 트레일을 매주 주말마다 걷고 있습니다. 회원분들과 좋은 인연 만들고 싶습니다!",
       date: "2026-08-15",
       welcomes: [
-        { id: 101, username: "ihiker", msg: "반갑습니다! 주말 산행에서 봬요 :)" }
+        { id: 101, username: "iHike 운영진", msg: "반갑습니다! 주말 산행에서 봬요 :)" }
       ]
     },
     {
@@ -2288,13 +2536,13 @@
       bio: "지인 소개로 가입했습니다. 국립공원 트레킹과 백팩킹에 관심이 많습니다. 잘 부탁드립니다.",
       date: "2026-08-20",
       welcomes: [
-        { id: 201, username: "ihiker", msg: "환영합니다! 이번 달 백팩킹 코스도 꼭 참여해보세요." }
+        { id: 201, username: "iHike 운영진", msg: "환영합니다! 이번 달 백팩킹 코스도 꼭 참여해보세요." }
       ]
     }
   ];
 
   const defaultMembers = [
-    { name: "ihiker", status: "regular", count: 30, recentHike: "요세미티", date: "2026-01-01", memo: "관리자 / 정회원" },
+    { name: "iHike 운영진", status: "regular", count: 30, recentHike: "요세미티", date: "2026-01-01", memo: "관리자 / 정회원" },
     { name: "JB", status: "regular", count: 18, recentHike: "퍼리시마 크릭 레드우즈", date: "2026-05-12", memo: "정회원 / 운영진 안내" },
     { name: "청산", status: "three", count: 2, recentHike: "퍼리시마 크릭", date: "2026-08-28", memo: "신입 회원 (2회 완료 / 1회 남음)" },
     { name: "바람", status: "three", count: 3, recentHike: "후다트 카운티 파크", date: "2026-08-30", memo: "신입 회원 3회 달성 / 등업 대기" }
@@ -2332,6 +2580,7 @@
   let introsState = [];
   let membersState = [];
   let infosState = [];
+  let noticesState = [];
   // 기타 정보에서 펼쳐 놓은 항목들. 실시간 갱신으로 다시 그려도 유지되도록 밖에 둡니다.
   const expandedInfoIds = new Set();
 
@@ -2589,6 +2838,15 @@
       renderInfos();
     }, onSyncError("기타 정보"));
 
+    // 6. 공지
+    db.collection("notices").onSnapshot((snapshot) => {
+      noticesState = [];
+      snapshot.forEach(doc => {
+        noticesState.push({ id: doc.id, ...doc.data() });
+      });
+      renderNotices();
+    }, onSyncError("공지"));
+
     // 유저 정보는 더 이상 전체를 구독하지 않습니다.
     // 로그인한 본인 문서만 onAuthStateChanged에서 한 번 읽습니다.
   }
@@ -2647,6 +2905,8 @@
       renderAuthNav();
       renderHikes();
       renderReports();
+      renderInfos();
+      renderNotices();
       showMainView();
       return;
     }
@@ -2669,6 +2929,7 @@
     renderHikes();
     renderReports();
     renderInfos();
+    renderNotices();
 
     // 완전히 새 DB를 처음 띄운 경우에만 기본 데이터를 넣습니다.
     await seedIfFirstRun();
@@ -2686,6 +2947,7 @@
           <span>👤 ${escapeHtml(user)} <small style="color:${isMaster ? 'var(--accent)' : (regularStatus ? 'var(--forest)' : 'var(--muted)')}; font-weight:600;">[${badgeText}]</small></span>
           <button type="button" onclick="openChangePwdModal()" style="background:none; border:none; color:var(--forest); font-size:0.72rem; cursor:pointer; padding:0; text-decoration:underline;">비번변경</button>
           <button type="button" onclick="logout()" style="background:none; border:none; color:var(--muted); font-size:0.72rem; cursor:pointer; padding:0; text-decoration:underline;">로그아웃</button>
+          <button type="button" onclick="openWithdrawModal()" style="background:none; border:none; color:var(--muted); font-size:0.72rem; cursor:pointer; padding:0; text-decoration:underline;">탈퇴</button>
         </div>
       `;
     } else {
@@ -2713,6 +2975,11 @@
     document.getElementById("toggle-auth-mode-btn").innerText = signup ? "이미 계정이 있으신가요? 로그인하기" : "계정이 없으신가요? 간편 가입하기";
     document.getElementById("auth-error-msg").style.display = "none";
     document.getElementById("auth-form").reset();
+
+    // 가입은 관리자 승인을 받은 닉네임만 가능하므로 그 절차를 알려 줍니다.
+    const notice = document.getElementById("signup-notice");
+    if (notice) notice.hidden = !signup;
+
     authModal.showModal();
   };
 
@@ -2746,6 +3013,26 @@
         return;
       }
 
+      // 관리자 승인을 먼저 확인합니다.
+      // Auth 계정을 먼저 만들면, 승인이 없을 때 주인 없는 계정만 남습니다.
+      let approval;
+      try {
+        approval = await db.collection("approvals").doc(username).get();
+      } catch (err) {
+        console.error("가입 승인 확인 실패:", err);
+        showError(`승인 여부를 확인하지 못했습니다. (${err.code || err.message})`);
+        return;
+      }
+
+      if (!approval.exists || approval.data().approved !== true) {
+        showError("아직 가입 승인이 되지 않은 닉네임입니다.\n먼저 [가입 인사]를 남기시면 운영진이 확인 후 승인해 드립니다.");
+        return;
+      }
+      if (approval.data().claimed === true) {
+        showError("이 닉네임은 이미 가입이 완료되었습니다. 로그인해 주세요.");
+        return;
+      }
+
       try {
         // 닉네임 중복은 Auth의 이메일 유일성이 그대로 걸러 줍니다.
         const cred = await auth.createUserWithEmailAndPassword(email, password);
@@ -2769,11 +3056,24 @@
               count: 0,
               recentHike: "-",
               date: new Date().toISOString().split("T")[0],
+              // 같은 날 여러 명이 가입해도 최신순을 가릴 수 있게 시각까지 남깁니다.
+              joinedAt: new Date().toISOString(),
               memo: "신규 가입 회원 (3회 참여 조건 대상)"
             });
           }
         } catch (memberErr) {
           console.error("회원 명단 등록 실패:", memberErr);
+        }
+
+        // 승인을 소진 처리해 같은 닉네임이 다시 쓰이지 않게 합니다.
+        try {
+          await db.collection("approvals").doc(username).update({ claimed: true });
+          if (approval.data().introId) {
+            await db.collection("intros").doc(approval.data().introId)
+              .update({ claimed: true }).catch(() => {});
+          }
+        } catch (claimErr) {
+          console.error("승인 소진 처리 실패:", claimErr);
         }
 
         authModal.close();
@@ -2859,6 +3159,85 @@
         console.error("비밀번호 변경 실패:", err);
         showError(`비밀번호를 변경하지 못했습니다. (${err.code || err.message})`);
       }
+    }
+  });
+
+  /* ── 회원 탈퇴 ────────────────────────────────────────────────────────
+     Firestore 문서를 먼저 지우고 마지막에 Auth 계정을 삭제합니다.
+     계정을 먼저 지우면 로그아웃 상태가 되어 규칙이 나머지 삭제를 막습니다. */
+  const withdrawModal = document.getElementById("withdraw-modal");
+
+  window.openWithdrawModal = function() {
+    if (!getCurrentUser()) return;
+    document.getElementById("withdraw-error-msg").style.display = "none";
+    document.getElementById("withdraw-form").reset();
+    withdrawModal.showModal();
+  };
+
+  document.getElementById("close-withdraw-btn").addEventListener("click", () => withdrawModal.close());
+  document.getElementById("cancel-withdraw-btn").addEventListener("click", () => withdrawModal.close());
+
+  document.getElementById("withdraw-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const errorMsg = document.getElementById("withdraw-error-msg");
+    const submitBtn = document.getElementById("withdraw-submit-btn");
+    const showError = (text) => {
+      errorMsg.innerText = text;
+      errorMsg.style.display = "block";
+    };
+
+    const user = auth.currentUser;
+    const nickname = getCurrentUser();
+    const uid = getCurrentUid();
+    if (!user || !nickname || !uid) {
+      showError("로그인 세션이 만료되었습니다. 다시 로그인해 주세요.");
+      return;
+    }
+
+    const typed = document.getElementById("withdraw-nickname").value.trim();
+    const password = document.getElementById("withdraw-password").value;
+
+    if (typed !== nickname) {
+      showError("닉네임이 일치하지 않습니다.");
+      return;
+    }
+
+    if (!confirm(`정말 탈퇴하시겠습니까?\n"${nickname}" 계정이 삭제되며 되돌릴 수 없습니다.`)) return;
+
+    submitBtn.disabled = true;
+    try {
+      // 계정 삭제 전에는 최근 로그인 증명이 필요합니다.
+      const cred = firebase.auth.EmailAuthProvider.credential(user.email, password);
+      await user.reauthenticateWithCredential(cred);
+
+      // 1) 내 회원 명단 줄 삭제 (같은 uid 로 만들어진 줄 전부)
+      const myRows = membersState.filter(m => m.ownerUid === uid);
+      for (const row of myRows) {
+        await db.collection("members").doc(row.id).delete();
+      }
+
+      // 2) 프로필 문서 삭제
+      await db.collection("users").doc(uid).delete();
+
+      // 3) 마지막으로 로그인 계정 삭제 (자동으로 로그아웃 상태가 됩니다)
+      await user.delete();
+
+      withdrawModal.close();
+      alert("탈퇴가 완료되었습니다. 그동안 함께해 주셔서 감사합니다.");
+    } catch (err) {
+      if (err.code === "auth/wrong-password" || err.code === "auth/invalid-credential") {
+        showError("비밀번호가 일치하지 않습니다.");
+      } else if (err.code === "auth/requires-recent-login") {
+        showError("보안을 위해 다시 로그인한 뒤 탈퇴해 주세요.");
+      } else if (err.code === "permission-denied") {
+        showError("탈퇴 처리 권한이 없습니다. 운영자에게 문의해 주세요.");
+        console.error("탈퇴 실패 — firestore.rules 의 users 삭제 권한을 확인하세요:", err);
+      } else {
+        console.error("탈퇴 실패:", err);
+        showError(`탈퇴하지 못했습니다. (${err.code || err.message})`);
+      }
+    } finally {
+      submitBtn.disabled = false;
     }
   });
 
@@ -3093,6 +3472,138 @@
     tbody.innerHTML = rows(members);
   }
 
+  /* ── 공지 ─────────────────────────────────────────────────────────────
+     공지는 운영 정보라 관리자만 쓰고 고칠 수 있게 합니다.
+     읽기는 로그인 없이 누구나 가능합니다. */
+  function renderNotices() {
+    const box = document.getElementById("notices");
+    const list = document.getElementById("notice-list");
+    const addBtn = document.getElementById("open-notice-modal-btn");
+    if (!box || !list) return;
+
+    if (addBtn) addBtn.hidden = !isAdmin();
+
+    // 공지가 없으면 관리자에게만 빈 영역을 보여 줍니다(작성 버튼 때문에).
+    if (noticesState.length === 0) {
+      box.hidden = !isAdmin();
+      list.innerHTML = `<div class="notice-empty">등록된 공지가 없습니다.</div>`;
+      return;
+    }
+
+    // 중요 공지를 먼저, 그 안에서 최신순으로.
+    // 어느 경로로 그려도 순서가 같도록 정렬은 여기서 합니다.
+    const ordered = [...noticesState].sort((a, b) =>
+      ((b.pinned === true) - (a.pinned === true)) ||
+      String(b.createdAt || "").localeCompare(String(a.createdAt || ""))
+    );
+
+    box.hidden = false;
+    list.innerHTML = ordered.map(n => {
+      const when = n.createdAt ? formatRsvpTime(new Date(Date.parse(n.createdAt))) : "";
+      return `
+        <article class="notice-item">
+          <div class="notice-item-head">
+            <div class="notice-title">
+              ${n.pinned === true ? `<span class="notice-pin" title="중요 공지">📌</span>` : ''}
+              ${escapeHtml(n.title)}
+            </div>
+            ${isAdmin() ? `
+              <div style="display:flex; gap:0.25rem;">
+                <button class="action-btn" onclick="openEditNoticeModal('${n.id}')" title="수정">수정</button>
+                <button class="action-btn delete" onclick="deleteNotice('${n.id}')" title="공지 삭제">×</button>
+              </div>
+            ` : ''}
+          </div>
+          <div class="notice-body">${escapeHtml(n.content)}</div>
+          ${(n.by || when) ? `
+            <div class="notice-by">${escapeHtml([n.by, when].filter(Boolean).join(" · "))}</div>
+          ` : ''}
+        </article>
+      `;
+    }).join("");
+  }
+
+  const noticeModal = document.getElementById("notice-modal");
+
+  document.getElementById("open-notice-modal-btn").addEventListener("click", () => {
+    if (!isAdmin()) {
+      alert("공지 작성은 관리자만 할 수 있습니다.");
+      return;
+    }
+    document.getElementById("notice-edit-id").value = "";
+    document.getElementById("notice-modal-title").innerText = "공지 작성";
+    document.getElementById("notice-submit-btn").innerText = "공지 등록";
+    document.getElementById("notice-form").reset();
+    noticeModal.showModal();
+  });
+
+  window.openEditNoticeModal = function(id) {
+    if (!isAdmin()) return;
+    const n = noticesState.find(x => x.id === id);
+    if (!n) return;
+
+    document.getElementById("notice-edit-id").value = n.id;
+    document.getElementById("notice-modal-title").innerText = "공지 수정";
+    document.getElementById("notice-submit-btn").innerText = "수정 완료";
+    document.getElementById("notice-title").value = n.title || "";
+    document.getElementById("notice-content").value = n.content || "";
+    document.getElementById("notice-pinned").checked = n.pinned === true;
+    noticeModal.showModal();
+  };
+
+  document.getElementById("close-notice-modal-btn").addEventListener("click", () => noticeModal.close());
+  document.getElementById("cancel-notice-btn").addEventListener("click", () => noticeModal.close());
+
+  document.getElementById("notice-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!isAdmin()) {
+      alert("공지 작성은 관리자만 할 수 있습니다.");
+      return;
+    }
+
+    const editId = document.getElementById("notice-edit-id").value;
+    const payload = {
+      title: document.getElementById("notice-title").value.trim(),
+      content: document.getElementById("notice-content").value.trim(),
+      pinned: document.getElementById("notice-pinned").checked
+    };
+
+    if (!payload.title || !payload.content) {
+      alert("제목과 내용을 입력해 주세요.");
+      return;
+    }
+
+    try {
+      if (editId) {
+        await db.collection("notices").doc(editId).update(payload);
+      } else {
+        payload.ownerUid = getCurrentUid();
+        payload.by = getCurrentUser();
+        payload.createdAt = new Date().toISOString();
+        await db.collection("notices").add(payload);
+      }
+      document.getElementById("notice-form").reset();
+      noticeModal.close();
+    } catch (err) {
+      console.error("공지 저장 실패:", err);
+      alert(`공지를 저장하지 못했습니다.\n(${err.code || err.message})`);
+    }
+  });
+
+  window.deleteNotice = async function(id) {
+    if (!isAdmin()) return;
+    const n = noticesState.find(x => x.id === id);
+    if (!n) return;
+    if (!confirm(`"${n.title}" 공지를 삭제하시겠습니까?`)) return;
+
+    try {
+      await db.collection("notices").doc(id).delete();
+    } catch (err) {
+      console.error("공지 삭제 실패:", err);
+      alert(`공지를 삭제하지 못했습니다.\n(${err.code || err.message})`);
+    }
+  };
+
   /* ── 새로 가입한 회원 (메인 화면) ─────────────────────────────────── */
   const NEWCOMER_LIMIT = 8;
   const NEWCOMER_FRESH_DAYS = 14;   // NEW 배지를 붙이는 기간
@@ -3116,9 +3627,12 @@
     if (!box || !chips) return;
 
     // 간편 가입으로 만들어진 줄 중 최근 것만, 등록일 최신순으로 보여 줍니다.
+    // 가입 시각(joinedAt)이 있으면 그걸로, 없으면 날짜로 최신순 정렬합니다.
+    const joinKey = (m) => String(m.joinedAt || m.date || "");
+
     const joined = membersState
       .filter(m => isSignupAccount(m) && daysSince(m.date) <= NEWCOMER_WINDOW_DAYS)
-      .sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))
+      .sort((a, b) => joinKey(b).localeCompare(joinKey(a)))
       .slice(0, NEWCOMER_LIMIT);
 
     if (joined.length === 0) {
@@ -3247,12 +3761,18 @@
       <article class="intro-card">
         <div class="intro-card-head">
           <div class="intro-author-title">🌱 ${escapeHtml(item.nickname)}님의 가입 인사</div>
-          <div style="display:flex; align-items:center; gap:0.6rem;">
+          <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
             <div class="intro-meta-tags">
               <span class="intro-tag">📍 ${escapeHtml(item.location)}</span>
               <span class="intro-tag">👤 ${escapeHtml(item.gender)}</span>
               <span class="intro-tag">🧭 ${escapeHtml(item.channel)}</span>
             </div>
+            ${introStatusBadge(item)}
+            ${isAdmin() ? `
+              ${item.approved === true
+                ? `<button class="action-btn" onclick="revokeIntro('${item.id}')" title="승인을 취소합니다">승인 취소</button>`
+                : `<button class="action-btn approve" onclick="approveIntro('${item.id}')" title="이 닉네임으로 가입할 수 있게 승인합니다">가입 승인</button>`}
+            ` : ''}
             ${(currentUser && (currentUser === item.nickname || isAdmin())) ? `
               <button class="action-btn delete" onclick="deleteIntro('${item.id}')" title="가입인사 삭제">삭제</button>
             ` : ''}
@@ -3325,7 +3845,87 @@
 
   window.deleteIntro = async function(id) {
     if (!confirm("가입 인사를 삭제하시겠습니까?")) return;
-    await db.collection("intros").doc(id).delete();
+    try {
+      await db.collection("intros").doc(id).delete();
+    } catch (err) {
+      console.error("가입 인사 삭제 실패:", err);
+      alert(`가입 인사를 삭제하지 못했습니다.\n(${err.code || err.message})`);
+    }
+  };
+
+  /* ── 가입 승인 ────────────────────────────────────────────────────────
+     승인하면 approvals/{닉네임} 문서가 생기고, 본인이 그 닉네임으로
+     원하는 비밀번호를 정해 가입할 수 있게 됩니다.
+     문서 ID를 닉네임으로 두는 이유: 보안 규칙은 컬렉션 조회를 못 하고
+     특정 문서만 읽을 수 있어서, 가입 시 닉네임으로 바로 확인해야 합니다. */
+  function introStatusBadge(item) {
+    // 예전 가입 인사에는 status 가 없습니다. 배지를 붙이지 않습니다.
+    if (item.status === undefined && item.approved === undefined) return "";
+    if (item.claimed === true) return `<span class="intro-status joined">가입 완료</span>`;
+    if (item.approved === true) return `<span class="intro-status approved">승인됨 · 가입 가능</span>`;
+    return `<span class="intro-status pending">승인 대기</span>`;
+  }
+
+  window.approveIntro = async function(id) {
+    if (!isAdmin()) {
+      alert("가입 승인은 관리자만 할 수 있습니다.");
+      return;
+    }
+    const item = introsState.find(i => i.id === id);
+    if (!item) return;
+
+    const nickname = String(item.nickname || "").trim();
+    if (!nicknameToEmail(nickname)) {
+      alert("이 닉네임으로는 계정을 만들 수 없습니다.\n한글 10자(영문 30자) 이내여야 합니다.");
+      return;
+    }
+
+    try {
+      // 이미 그 닉네임으로 가입이 끝났는지 확인합니다.
+      const existing = await db.collection("approvals").doc(nickname).get();
+      if (existing.exists && existing.data().claimed === true) {
+        alert(`"${nickname}" 은(는) 이미 가입이 완료된 닉네임입니다.`);
+        return;
+      }
+
+      if (!confirm(`"${nickname}" 님의 가입을 승인하시겠습니까?\n승인하면 본인이 비밀번호를 정해 가입할 수 있습니다.`)) return;
+
+      await db.collection("approvals").doc(nickname).set({
+        nickname: nickname,
+        approved: true,
+        claimed: false,
+        introId: id,
+        approvedAt: new Date().toISOString()
+      });
+      await db.collection("intros").doc(id).update({ status: "approved", approved: true });
+
+      alert(`승인했습니다.\n"${nickname}" 님께 사이트에서 [로그인 → 간편 가입]으로\n같은 닉네임과 원하는 비밀번호를 입력하시라고 안내해 주세요.`);
+    } catch (err) {
+      console.error("가입 승인 실패:", err);
+      alert(`승인하지 못했습니다.\n(${err.code || err.message})`);
+    }
+  };
+
+  window.revokeIntro = async function(id) {
+    if (!isAdmin()) return;
+    const item = introsState.find(i => i.id === id);
+    if (!item) return;
+
+    const nickname = String(item.nickname || "").trim();
+    try {
+      const existing = await db.collection("approvals").doc(nickname).get();
+      if (existing.exists && existing.data().claimed === true) {
+        alert("이미 가입을 마친 분입니다.\n승인 취소로는 계정이 사라지지 않습니다.\n필요하면 회원 명단에서 삭제해 주세요.");
+        return;
+      }
+      if (!confirm(`"${nickname}" 님의 가입 승인을 취소하시겠습니까?`)) return;
+
+      if (existing.exists) await db.collection("approvals").doc(nickname).delete();
+      await db.collection("intros").doc(id).update({ status: "pending", approved: false });
+    } catch (err) {
+      console.error("승인 취소 실패:", err);
+      alert(`승인을 취소하지 못했습니다.\n(${err.code || err.message})`);
+    }
   };
 
   const introModal = document.getElementById("intro-modal");
@@ -3341,20 +3941,40 @@
 
   document.getElementById("intro-form").addEventListener("submit", async (e) => {
     e.preventDefault();
+    const nickname = document.getElementById("intro-nickname").value.trim();
+
+    // 승인되면 이 닉네임으로 계정을 만들게 되므로, 가입 때와 같은 제약을 미리 확인합니다.
+    if (!nicknameToEmail(nickname)) {
+      alert("닉네임은 한글 10자(영문 30자) 이내로 입력해 주세요.");
+      return;
+    }
+
     const newIntro = {
-      nickname: document.getElementById("intro-nickname").value.trim(),
+      nickname: nickname,
       location: document.getElementById("intro-location").value.trim(),
       gender: document.getElementById("intro-gender").value,
       channel: document.getElementById("intro-channel").value,
       bio: document.getElementById("intro-bio").value.trim(),
       date: new Date().toISOString().split("T")[0],
-      ownerUid: getCurrentUid(),
+      // 관리자 승인 전까지는 항상 대기 상태입니다. 규칙에서도 강제합니다.
+      status: "pending",
+      approved: false,
       welcomes: []
     };
 
-    await db.collection("intros").add(newIntro);
-    document.getElementById("intro-form").reset();
-    introModal.close();
+    // 로그인한 회원이 쓴 경우에만 소유자를 남깁니다(본인이 지울 수 있게).
+    const uid = getCurrentUid();
+    if (uid) newIntro.ownerUid = uid;
+
+    try {
+      await db.collection("intros").add(newIntro);
+      document.getElementById("intro-form").reset();
+      introModal.close();
+      alert("가입 인사가 등록되었습니다.\n운영진 승인 후 해당 닉네임으로 가입하실 수 있습니다.");
+    } catch (err) {
+      console.error("가입 인사 등록 실패:", err);
+      alert(`가입 인사를 등록하지 못했습니다.\n(${err.code || err.message})`);
+    }
   });
 
   /* ── RSVP Handler ──────────────────────────────────────────────────── */
@@ -3774,9 +4394,11 @@
         <div>
           <h4 style="font-family:var(--f-display); margin-bottom:0.8rem;">📸 현장 갤러리 (${rep.photos.length}장)</h4>
           <div class="gallery-grid">
-            ${rep.photos.map(url => safeImageUrl(url)).filter(Boolean).map(url => `
+            ${rep.photos.map(url => safeImageUrl(url)).filter(Boolean).map((url, i) => `
               <div class="gallery-img-wrapper">
-                <img src="${url}" alt="산행 후기 사진" loading="lazy">
+                <img src="${url}" alt="산행 후기 사진 ${i + 1}" loading="lazy"
+                     title="클릭하면 사진 전체를 볼 수 있습니다"
+                     onclick="openLightbox(this.src)">
               </div>
             `).join("")}
           </div>
