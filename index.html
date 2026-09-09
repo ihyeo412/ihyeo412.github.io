@@ -2182,7 +2182,7 @@
       <div class="form-grid">
         <label>
           <span>산행 날짜</span>
-          <input type="text" id="hike-date" placeholder="예: 09/20(토)" required>
+          <input type="text" id="hike-date" placeholder="예: 2026/09/20(토)" required>
         </label>
         <label>
           <span>모이는 시간</span>
@@ -2747,9 +2747,20 @@
 
   function parseHikeDate(dateStr) {
     if (!dateStr) return 0;
-    const match = dateStr.match(/^(\d{1,2})\/(\d{1,2})/);
+    const match = String(dateStr).trim().match(/^(?:(\d{4})[./-])?(\d{1,2})[./-](\d{1,2})/);
     if (!match) return 0;
-    return parseInt(match[1], 10) * 100 + parseInt(match[2], 10);
+    const year = parseInt(match[1] || new Date().getFullYear(), 10);
+    return year * 10000 + parseInt(match[2], 10) * 100 + parseInt(match[3], 10);
+  }
+
+  function formatHikeDate(dateStr) {
+    const value = String(dateStr || "").trim();
+    const match = value.match(/^(?:(\d{4})[./-])?(\d{1,2})[./-](\d{1,2})$/);
+    if (!match) return value || "-";
+    const year = match[1] || new Date().getFullYear();
+    const month = match[2].padStart(2, "0");
+    const day = match[3].padStart(2, "0");
+    return `${year}/${month}/${day}`;
   }
 
   /* ── One-Time Seeding ──────────────────────────────────────────────────
@@ -4318,7 +4329,7 @@
       <div class="detail-grid">
         <div class="detail-item">
           <span class="label">일시 및 시간</span>
-          <span class="value">${escapeHtml(hike.date)} (${escapeHtml(hike.day || "주말")}) ${escapeHtml(hike.time || "")}</span>
+          <span class="value">${escapeHtml(formatHikeDate(hike.date))} (${escapeHtml(hike.day || "주말")}) ${escapeHtml(hike.time || "")}</span>
         </div>
         <div class="detail-item">
           <span class="label">총 거리</span>
@@ -4628,7 +4639,7 @@
     return `
       <article class="hike">
         <div class="when">
-          ${escapeHtml(h.date)}<small>${escapeHtml(h.day || "")}</small>
+          ${escapeHtml(formatHikeDate(h.date))}<small>${escapeHtml(h.day || "")}</small>
           ${h.time ? `<span class="time">${escapeHtml(h.time)}</span>` : ''}
         </div>
         <div class="what">
@@ -4796,7 +4807,8 @@
     document.getElementById("hike-modal-title").innerText = "산행 일정 수정";
     document.getElementById("hike-submit-btn").innerText = "수정 완료";
 
-    document.getElementById("hike-date").value = hike.day ? `${hike.date}(${hike.day})` : hike.date;
+    const editableDate = formatHikeDate(hike.date);
+    document.getElementById("hike-date").value = hike.day ? `${editableDate}(${hike.day})` : editableDate;
     document.getElementById("hike-time").value = hike.time || "";
     document.getElementById("hike-type").value = hike.tag || "정기";
     document.getElementById("hike-title").value = hike.name || "";
