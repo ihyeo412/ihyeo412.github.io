@@ -532,6 +532,16 @@
     transition: color 0.15s, text-decoration-color 0.15s;
   }
   .report h3 { margin: 0; min-width: 0; }
+  .report-info { min-width: 0; display: grid; gap: 0.25rem; }
+  .report-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.6rem;
+    font-family: var(--f-mono);
+    font-size: 0.65rem;
+    color: var(--muted);
+  }
+  .report-visibility { color: var(--forest); font-weight: 600; }
   .report-title-link:hover {
     color: var(--forest);
     text-decoration-color: var(--accent);
@@ -4736,16 +4746,28 @@
       const ytThumb = getYouTubeThumbnail(r.youtube);
       const firstPhoto = (r.photos && r.photos.length > 0) ? r.photos[0] : null;
       const displayThumb = safeImageUrl(ytThumb || firstPhoto) || "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=600&q=80";
+      const rawBy = String(r.by || "").trim();
+      const legacyDate = rawBy.match(/(?:[-·]\s*)?(\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{4}[/-]\d{1,2}[/-]\d{1,2})\s*$/);
+      const author = (legacyDate ? rawBy.slice(0, legacyDate.index).replace(/[-·]\s*$/, "").trim() : rawBy) || "-";
+      const date = r.createdAt ? String(r.createdAt).slice(0, 10) : (legacyDate ? legacyDate[1] : "-");
+      const visibility = isReportPublic(r) ? "일반" : "정회원";
       return `
         <article class="report">
           <div class="report-thumb" onclick="openReportDetail('${r.id}')">
             <img src="${displayThumb}" alt="후기 썸네일" loading="lazy">
           </div>
-          <h3>
-            <button type="button" class="report-title-link" onclick="openReportDetail('${r.id}')" title="후기 전문 및 영상 보기">
-              ${escapeHtml(r.title)}
-            </button>
-          </h3>
+          <div class="report-info">
+            <h3>
+              <button type="button" class="report-title-link" onclick="openReportDetail('${r.id}')" title="후기 전문 및 영상 보기">
+                ${escapeHtml(r.title)}
+              </button>
+            </h3>
+            <div class="report-meta">
+              <span class="report-visibility">${visibility}</span>
+              <span>작성자 ${escapeHtml(author)}</span>
+              <span>날짜 ${escapeHtml(date)}</span>
+            </div>
+          </div>
         </article>
       `;
     }).join("");
@@ -4939,6 +4961,7 @@
         content: document.getElementById("report-content").value.trim(),
         by: document.getElementById("report-by").value.trim(),
         ownerUid: getCurrentUid(),
+        createdAt: new Date().toISOString(),
         photos: photoDataUrls
       };
       try {
