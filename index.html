@@ -181,7 +181,13 @@
     border: 1px solid var(--hairline);
   }
 
-  .hero { padding-block: clamp(2.6rem, 8vw, 4.6rem) 0; }
+  .hero { padding-block: clamp(2.6rem, 8vw, 4.6rem); }
+  .hero-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(280px, 0.95fr);
+    align-items: center;
+    gap: clamp(1.8rem, 5vw, 4.5rem);
+  }
   .hero h1 {
     font-size: clamp(2.1rem, 6.4vw, 3.7rem);
     font-weight: 700;
@@ -199,6 +205,15 @@
     flex-wrap: wrap;
     gap: 0.7rem;
     margin-top: 1.9rem;
+  }
+  .hero-photo {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    display: block;
+    object-fit: cover;
+    object-position: 65% center;
+    border-radius: var(--radius);
+    border: 1px solid var(--hairline);
   }
   .btn {
     display: inline-flex;
@@ -220,29 +235,10 @@
   .btn-ghost:hover { border-color: var(--forest); }
   .btn-sm { padding: 0.35rem 0.75rem; font-size: 0.76rem; }
 
-  .ridge {
-    margin-top: clamp(2.2rem, 6vw, 3.4rem);
-    position: relative;
+  @media (max-width: 680px) {
+    .hero-layout { grid-template-columns: 1fr; }
+    .hero-photo { max-width: 540px; }
   }
-  .ridge svg { display: block; width: 100%; height: auto; }
-  .ridge .stop-top { stop-color: var(--forest); stop-opacity: 0.20; }
-  .ridge .stop-bottom { stop-color: var(--forest); stop-opacity: 0.02; }
-  .ridge .ridge-line { stroke: var(--forest); }
-  .ridge .peak-dot { fill: var(--accent); }
-  .ridge-labels {
-    display: flex;
-    justify-content: space-between;
-    gap: 0.5rem;
-    padding-top: 0.55rem;
-    border-top: 1px solid var(--hairline);
-    font-family: var(--f-mono);
-    font-size: 0.63rem;
-    letter-spacing: 0.05em;
-    color: var(--muted);
-    overflow-x: auto;
-  }
-  .ridge-labels span { white-space: nowrap; }
-  .ridge-labels b { font-weight: 500; color: var(--ink-soft); }
 
   .section { padding-block: clamp(3rem, 8vw, 4.8rem); }
   .section-head {
@@ -1720,39 +1716,21 @@
   <!-- ── Main View Container ──────────────────────────────────────── -->
   <div id="main-view">
     <section class="hero">
-      <div class="eyebrow">San Francisco — Monterey · Tahoe · Yosemite</div>
-      <h1>iHike에 오신 것을 환영합니다.</h1>
-      <p class="lede">
-        iHike는 샌프란시스코에서 몬트레이까지 이어지는 해안 산맥, 그리고 동쪽의 타호와
-        요세미티를 매주 주말 함께 걷는 열린 산악회입니다. 바쁜 일상을 잠시 내려놓고
-        같이 걸어요. 성별·나이·직업과 상관없이 누구나 오실 수 있습니다.
-      </p>
-      <div class="hero-actions">
-        <a class="btn btn-solid" href="#schedule">이번 달 산행 보기</a>
-        <a class="btn btn-ghost" href="#join">처음 오시나요?</a>
-      </div>
-
-      <div class="ridge" aria-hidden="true">
-        <svg viewBox="0 0 1200 150" preserveAspectRatio="none" role="presentation">
-          <defs>
-            <linearGradient id="ridgeFill" x1="0" y1="0" x2="0" y2="1">
-              <stop class="stop-top" offset="0%"/>
-              <stop class="stop-bottom" offset="100%"/>
-            </linearGradient>
-          </defs>
-          <path fill="url(#ridgeFill)" stroke="none"
-            d="M0,132 L38,124 L74,127 L112,108 L150,116 L186,96 L214,101 L248,74 L282,88 L318,80 L352,95 L390,66 L422,78 L458,54 L492,70 L528,44 L560,58 L596,30 L628,47 L664,36 L700,61 L734,50 L770,76 L806,64 L840,86 L876,72 L910,97 L946,84 L982,104 L1018,92 L1054,113 L1090,101 L1126,121 L1162,110 L1200,128 L1200,150 L0,150 Z"/>
-          <path class="ridge-line" fill="none" stroke-width="1.4" stroke-linejoin="round"
-            d="M0,132 L38,124 L74,127 L112,108 L150,116 L186,96 L214,101 L248,74 L282,88 L318,80 L352,95 L390,66 L422,78 L458,54 L492,70 L528,44 L560,58 L596,30 L628,47 L664,36 L700,61 L734,50 L770,76 L806,64 L840,86 L876,72 L910,97 L946,84 L982,104 L1018,92 L1054,113 L1090,101 L1126,121 L1162,110 L1200,128"/>
-          <circle class="peak-dot" cx="596" cy="30" r="3.2"/>
-        </svg>
-        <div class="ridge-labels">
-          <span><b>후다트</b> 800ft</span>
-          <span><b>퍼리시마</b> 1,600ft</span>
-          <span><b>미션피크</b> 2,517ft</span>
-          <span><b>클라우즈 레스트</b> 9,930ft</span>
-          <span><b>글렌 패스</b> 11,978ft</span>
+      <div class="hero-layout">
+        <div>
+          <div class="eyebrow">San Francisco — Monterey · Tahoe · Yosemite</div>
+          <h1>iHike에 오신 것을 환영합니다.</h1>
+          <p class="lede">
+            iHike는 샌프란시스코에서 몬트레이까지 이어지는 해안 산맥, 그리고 동쪽의 타호와
+            요세미티를 매주 주말 함께 걷는 열린 산악회입니다. 바쁜 일상을 잠시 내려놓고
+            같이 걸어요. 성별·나이·직업과 상관없이 누구나 오실 수 있습니다.
+          </p>
+          <div class="hero-actions">
+            <a class="btn btn-solid" href="#schedule">이번 달 산행 보기</a>
+            <a class="btn btn-ghost" href="#join">처음 오시나요?</a>
+          </div>
         </div>
+        <img class="hero-photo" src="welcome-mountain.jpeg" alt="푸른 하늘 아래의 산봉우리">
       </div>
     </section>
 
@@ -4749,7 +4727,8 @@
       const rawBy = String(r.by || "").trim();
       const legacyDate = rawBy.match(/(?:[-·]\s*)?(\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{4}[/-]\d{1,2}[/-]\d{1,2})\s*$/);
       const author = (legacyDate ? rawBy.slice(0, legacyDate.index).replace(/[-·]\s*$/, "").trim() : rawBy) || "-";
-      const date = r.createdAt ? String(r.createdAt).slice(0, 10) : (legacyDate ? legacyDate[1] : "-");
+        const titleDate = String(r.title || "").match(/(\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{4}[/-]\d{1,2}[/-]\d{1,2})\s*$/);
+        const date = r.createdAt ? String(r.createdAt).slice(0, 10) : (legacyDate ? legacyDate[1] : (titleDate ? titleDate[1] : "-"));
       const visibility = isReportPublic(r) ? "일반" : "정회원";
       return `
         <article class="report">
