@@ -472,29 +472,23 @@
 
   .reports {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
     gap: 1px;
     background: var(--hairline);
     border-block: 1px solid var(--hairline);
   }
   .report {
     background: var(--ground);
-    padding: 1.5rem 1.4rem;
+    padding: 0.8rem 1rem;
     display: flex;
-    flex-direction: column;
-    gap: 0.8rem;
-  }
-  .report .kind {
-    font-family: var(--f-mono);
-    font-size: 0.64rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--accent);
+    align-items: center;
+    gap: 0.75rem;
   }
   .report-thumb {
-    width: 100%;
-    aspect-ratio: 16 / 9;
-    border-radius: var(--radius);
+    flex: 0 0 72px;
+    width: 72px;
+    height: 54px;
+    border-radius: 3px;
     overflow: hidden;
     background: var(--surface-2);
     position: relative;
@@ -537,6 +531,7 @@
     text-underline-offset: 3px;
     transition: color 0.15s, text-decoration-color 0.15s;
   }
+  .report h3 { margin: 0; min-width: 0; }
   .report-title-link:hover {
     color: var(--forest);
     text-decoration-color: var(--accent);
@@ -4736,53 +4731,21 @@
       return;
     }
 
-    container.innerHTML = reportsState.map(r => {
+    // 홈 화면에서는 최근 후기 8개만 간결하게 보여줍니다.
+    container.innerHTML = reportsState.slice(0, 8).map(r => {
       const ytThumb = getYouTubeThumbnail(r.youtube);
       const firstPhoto = (r.photos && r.photos.length > 0) ? r.photos[0] : null;
       const displayThumb = safeImageUrl(ytThumb || firstPhoto) || "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=600&q=80";
-      const canEdit = currentUser && ((r.by || "").includes(currentUser) || isAdmin());
-
-      // 공개 범위는 후기마다 다릅니다. 배지는 그 후기의 범위와,
-      // 지금 보는 사람이 열람 가능한지를 함께 알려 줍니다.
-      const isPublic = isReportPublic(r);
-      const canRead = canReadReport(r, currentUser);
-      const badgeText = isPublic
-        ? (canRead ? '🔓 전체 공개' : '🔓 전체 공개 · 로그인 필요')
-        : (canRead ? '🔒 정회원 전용 · 열람가능' : '🔒 정회원 전용');
-      const badgeColor = canRead ? 'var(--forest)' : 'var(--accent)';
-      const lockedText = isPublic
-        ? '로그인하시면 전문과 영상을 보실 수 있습니다.'
-        : '본 후기는 정회원 전용 콘텐츠입니다. 정회원 승급 후 영상과 상세 기록을 확인하실 수 있습니다.';
-
       return `
         <article class="report">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <div class="kind">${escapeHtml(r.kind)}</div>
-            <span style="font-family:var(--f-mono); font-size:0.65rem; color:${badgeColor}; font-weight:500;">
-              ${badgeText}
-            </span>
-          </div>
-
           <div class="report-thumb" onclick="openReportDetail('${r.id}')">
             <img src="${displayThumb}" alt="후기 썸네일" loading="lazy">
-            ${ytThumb ? `<span class="play-badge">▶ YouTube</span>` : ''}
           </div>
-
           <h3>
             <button type="button" class="report-title-link" onclick="openReportDetail('${r.id}')" title="후기 전문 및 영상 보기">
               ${escapeHtml(r.title)}
             </button>
           </h3>
-          <p>${canRead ? escapeHtml(r.content) : lockedText}</p>
-          <div class="by">
-            <span>${escapeHtml(r.by)}</span>
-            ${canEdit ? `
-              <div style="display:flex; gap:0.25rem;">
-                <button class="action-btn" onclick="openEditReportModal('${r.id}')" title="수정">수정</button>
-                <button class="action-btn delete" onclick="deleteReport('${r.id}')" title="후기 삭제">×</button>
-              </div>
-            ` : ''}
-          </div>
         </article>
       `;
     }).join("");
