@@ -2753,6 +2753,15 @@
     return year * 10000 + parseInt(match[2], 10) * 100 + parseInt(match[3], 10);
   }
 
+  function hikeListSortValue(dateStr) {
+    const value = parseHikeDate(dateStr);
+    if (!value) return Number.MAX_SAFE_INTEGER;
+    const now = new Date();
+    const today = now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
+    // 예정 산행을 먼저 날짜순으로, 이미 지난 산행은 그 아래로 보냅니다.
+    return value >= today ? value : value + 100000000;
+  }
+
   function formatHikeDate(dateStr) {
     const value = String(dateStr || "").trim();
     const match = value.match(/^(?:(\d{4})[./-])?(\d{1,2})[./-](\d{1,2})$/);
@@ -2834,7 +2843,7 @@
       snapshot.forEach(doc => {
         hikesState.push({ id: doc.id, ...doc.data() });
       });
-      hikesState.sort((a, b) => parseHikeDate(b.date) - parseHikeDate(a.date));
+      hikesState.sort((a, b) => hikeListSortValue(a.date) - hikeListSortValue(b.date));
       renderHikes();
       if (window.currentDetailHikeId) {
         // 상세 보기 중인 산행이 삭제되었다면 목록으로 되돌립니다.
