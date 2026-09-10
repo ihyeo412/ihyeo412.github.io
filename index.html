@@ -150,6 +150,14 @@
     cursor: pointer;
   }
   .mark span { color: var(--forest); }
+  .mark .site-domain {
+    margin-left: 0.45rem;
+    color: var(--muted);
+    font-size: 0.72em;
+    font-weight: 500;
+    letter-spacing: 0;
+  }
+  .mark .site-domain .domain-r { color: #c7352b; }
   .masthead nav {
     display: flex;
     flex-wrap: wrap;
@@ -1703,7 +1711,7 @@
 <div class="wrap">
 
   <header class="masthead">
-    <a class="mark" onclick="showMainView()">iHike<span> 산악회</span></a>
+    <a class="mark" onclick="showMainView()">iHike<span> 산악회</span><span class="site-domain">iHike<span class="domain-r">r</span>.org</span></a>
     <nav aria-label="주 메뉴">
       <a href="#schedule" onclick="showMainView()">산행 일정</a>
       <a href="#reports" onclick="showMainView()">산행 후기</a>
