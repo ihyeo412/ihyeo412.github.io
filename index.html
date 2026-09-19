@@ -1714,7 +1714,7 @@
     <a class="mark" onclick="showMainView()">iHike<span> 산악회</span><span class="site-domain">iHike<span class="domain-r">r</span>.org</span></a>
     <nav aria-label="주 메뉴">
       <a href="#schedule" onclick="showMainView()">산행 일정</a>
-      <a href="#reports" onclick="showMainView()">산행 후기</a>
+      <a href="#all-reports" onclick="openReportsBoardView()">산행 후기</a>
       <a href="#join" onclick="showMainView()">가입 안내</a>
       <a href="#info" onclick="showMainView()">기타 정보</a>
       <div id="auth-nav-container"></div>
@@ -1787,7 +1787,7 @@
     <!-- ── Reports Section ─────────────────────────────────────────── -->
     <section class="section" id="reports">
       <div class="section-head">
-        <h2>산행 후기</h2>
+        <h2><a href="#all-reports" onclick="openReportsBoardView()" style="color:inherit; text-decoration:none;">산행 후기</a></h2>
         <span class="period">정회원 전용 영상 & 사진 기록</span>
         <div class="head-actions">
           <button type="button" class="btn btn-solid btn-sm" id="open-report-modal-btn">+ 후기 작성하기</button>
@@ -1896,9 +1896,19 @@
   </main>
 
   <!-- ── Report Detail View ───────────────────────────────────────── -->
+  <main id="reports-board-view" class="detail-view">
+    <div class="back-nav">
+      <button type="button" class="btn btn-ghost btn-sm" onclick="showMainView()">← 홈으로 돌아가기</button>
+    </div>
+    <section class="section" id="all-reports">
+      <div class="section-head"><h2>산행 후기</h2><span class="period">전체 후기</span></div>
+      <div class="reports" id="all-report-list"></div>
+    </section>
+  </main>
+
   <main id="report-detail-view" class="detail-view">
     <div class="back-nav">
-      <button type="button" class="btn btn-ghost btn-sm" onclick="showMainView()">← 후기 목록으로 돌아가기</button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="openReportsBoardView()">← 후기 목록으로 돌아가기</button>
       <div id="report-detail-actions"></div>
     </div>
     <div class="detail-card" id="report-detail-content"></div>
@@ -3439,6 +3449,7 @@
   window.showMainView = function() {
     document.getElementById("main-view").style.display = "block";
     document.getElementById("hike-detail-view").style.display = "none";
+    document.getElementById("reports-board-view").style.display = "none";
     document.getElementById("report-detail-view").style.display = "none";
     document.getElementById("intro-board-view").style.display = "none";
     document.getElementById("members-board-view").style.display = "none";
@@ -3447,9 +3458,18 @@
     editingRsvpId = null;
   };
 
+  window.openReportsBoardView = function() {
+    showMainView();
+    document.getElementById("main-view").style.display = "none";
+    document.getElementById("reports-board-view").style.display = "block";
+    renderReports();
+    window.scrollTo(0, 0);
+  };
+
   window.openRulesDetailView = function() {
     document.getElementById("main-view").style.display = "none";
     document.getElementById("hike-detail-view").style.display = "none";
+    document.getElementById("reports-board-view").style.display = "none";
     document.getElementById("report-detail-view").style.display = "none";
     document.getElementById("intro-board-view").style.display = "none";
     document.getElementById("members-board-view").style.display = "none";
@@ -3462,6 +3482,7 @@
     activeMemberFilter = filter;
     document.getElementById("main-view").style.display = "none";
     document.getElementById("hike-detail-view").style.display = "none";
+    document.getElementById("reports-board-view").style.display = "none";
     document.getElementById("report-detail-view").style.display = "none";
     document.getElementById("intro-board-view").style.display = "none";
     document.getElementById("rules-detail-view").style.display = "none";
@@ -3853,6 +3874,7 @@
   window.openIntroBoardView = function() {
     document.getElementById("main-view").style.display = "none";
     document.getElementById("hike-detail-view").style.display = "none";
+    document.getElementById("reports-board-view").style.display = "none";
     document.getElementById("report-detail-view").style.display = "none";
     document.getElementById("members-board-view").style.display = "none";
     document.getElementById("rules-detail-view").style.display = "none";
@@ -4507,6 +4529,7 @@
 
     document.getElementById("main-view").style.display = "none";
     document.getElementById("hike-detail-view").style.display = "block";
+    document.getElementById("reports-board-view").style.display = "none";
     document.getElementById("report-detail-view").style.display = "none";
     document.getElementById("intro-board-view").style.display = "none";
     document.getElementById("members-board-view").style.display = "none";
@@ -4595,6 +4618,7 @@
 
     document.getElementById("main-view").style.display = "none";
     document.getElementById("hike-detail-view").style.display = "none";
+    document.getElementById("reports-board-view").style.display = "none";
     document.getElementById("report-detail-view").style.display = "block";
     document.getElementById("intro-board-view").style.display = "none";
     document.getElementById("members-board-view").style.display = "none";
@@ -4746,10 +4770,18 @@
 
   /* ── Report Render ─────────────────────────────────────────────────── */
   function renderReports() {
-    const container = document.getElementById("report-list");
+    const sortedReports = [...reportsState].sort((a, b) =>
+      String(b.createdAt || "").localeCompare(String(a.createdAt || ""))
+    );
+    renderReportList("report-list", sortedReports.slice(0, 8));
+    renderReportList("all-report-list", sortedReports);
+  }
+
+  function renderReportList(containerId, reports) {
+    const container = document.getElementById(containerId);
     const currentUser = getCurrentUser();
 
-    if (reportsState.length === 0) {
+    if (reports.length === 0) {
       container.innerHTML = `
         <div style="padding:1.5rem; text-align:center; color:var(--muted); font-size:0.85rem;">
           등록된 산행 후기가 없습니다. 다녀온 산행 후기를 남겨 주세요!
@@ -4758,8 +4790,7 @@
       return;
     }
 
-    // 홈 화면에서는 최근 후기 8개만 간결하게 보여줍니다.
-    container.innerHTML = reportsState.slice(0, 8).map(r => {
+    container.innerHTML = reports.map(r => {
       const ytThumb = getYouTubeThumbnail(r.youtube);
       const firstPhoto = (r.photos && r.photos.length > 0) ? r.photos[0] : null;
       const displayThumb = safeImageUrl(ytThumb || firstPhoto) || "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=600&q=80";
