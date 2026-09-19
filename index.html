@@ -1751,6 +1751,23 @@
       <div class="notice-list" id="notice-list"></div>
     </section>
 
+    <section class="newcomers" id="recent-intros" hidden aria-labelledby="recent-intros-title">
+      <div class="newcomers-head">
+        <h3 id="recent-intros-title">새로 가입 인사를 남긴 분들</h3>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="openIntroBoardView()">가입 인사 전체 보기 ↗</button>
+      </div>
+      <div class="newcomer-chips" id="recent-intro-chips"></div>
+    </section>
+
+      <!-- ── 새로 가입한 회원 ───────────────────────────────────────── -->
+      <div class="newcomers" id="newcomers" hidden>
+        <div class="newcomers-head">
+          <h3>새로 가입한 회원 <span id="newcomer-count"></span></h3>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="openMembersBoardView('pending')">새 회원 전체 보기 ↗</button>
+        </div>
+        <div class="newcomer-chips" id="newcomer-chips"></div>
+      </div>
+
     <!-- ── Schedule Section ────────────────────────────────────────── -->
     <section class="section" id="schedule">
       <div class="section-head">
@@ -1829,14 +1846,7 @@
         </div>
       </div>
 
-      <!-- ── 새로 가입한 회원 ───────────────────────────────────────── -->
-      <div class="newcomers" id="newcomers" hidden>
-        <div class="newcomers-head">
-          <h3>새로 가입한 회원</h3>
-          <button type="button" class="btn btn-ghost btn-sm" onclick="openMembersBoardView('all')">전체 명단 보기 ↗</button>
-        </div>
-        <div class="newcomer-chips" id="newcomer-chips"></div>
-      </div>
+
 
     </section>
 
@@ -2888,7 +2898,8 @@
       snapshot.forEach(doc => {
         introsState.push({ id: doc.id, ...doc.data() });
       });
-      introsState.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+      introsState.sort((a, b) => String(b.createdAt || b.date || "").localeCompare(String(a.createdAt || a.date || "")));
+      renderRecentIntros();
       if (document.getElementById("intro-board-view").style.display === "block") {
         renderIntros();
       }
@@ -3724,10 +3735,27 @@
     }
   };
 
+  // 공개 가입 인사의 닉네임과 작성일만 홈에 표시합니다.
+  function renderRecentIntros() {
+    const box = document.getElementById("recent-intros");
+    const chips = document.getElementById("recent-intro-chips");
+    const recent = introsState.slice(0, 8);
+    box.hidden = recent.length === 0;
+    chips.innerHTML = recent.map(item => {
+      const when = String(item.createdAt || item.date || "").slice(0, 10);
+      const age = daysSince(when);
+      const fresh = age >= 0 && age <= 14;
+      return `<button type="button" class="btn btn-ghost newcomer-chip ${fresh ? 'fresh' : ''}" onclick="openIntroBoardView()">
+        <span>${escapeHtml(item.nickname || "새 회원")}</span>
+        ${fresh ? '<span class="new-flag">NEW</span>' : ''}
+        ${when ? `<span class="when">${escapeHtml(when)}</span>` : ''}
+      </button>`;
+    }).join("");
+  }
+
   /* ── 새로 가입한 회원 (메인 화면) ─────────────────────────────────── */
   const NEWCOMER_LIMIT = 8;
   const NEWCOMER_FRESH_DAYS = 14;   // NEW 배지를 붙이는 기간
-  const NEWCOMER_WINDOW_DAYS = 30;  // "새로 가입"으로 볼 기간
 
   // 가입일은 toISOString() 으로 만든 UTC 날짜 문자열입니다.
   // 로컬 시간으로 비교하면 시차 때문에 오늘 가입한 사람이 어제로 계산될 수 있어,
@@ -3754,15 +3782,16 @@
       return;
     }
 
-    // 간편 가입으로 만들어진 줄 중 최근 것만, 등록일 최신순으로 보여 줍니다.
+    // 가입 후 등업을 기다리는 회원을 가입일 최신순으로 보여 줍니다.
     // 가입 시각(joinedAt)이 있으면 그걸로, 없으면 날짜로 최신순 정렬합니다.
     const joinKey = (m) => String(m.joinedAt || m.date || "");
 
-    const joined = membersState
+    const pending = membersState
       // 정회원으로 등업된 분은 더 이상 새 가입 회원 명단에 표시하지 않습니다.
-      .filter(m => isSignupAccount(m) && m.status !== "regular" && daysSince(m.date) <= NEWCOMER_WINDOW_DAYS)
-      .sort((a, b) => joinKey(b).localeCompare(joinKey(a)))
-      .slice(0, NEWCOMER_LIMIT);
+      .filter(m => isSignupAccount(m) && m.status !== "regular")
+      .sort((a, b) => joinKey(b).localeCompare(joinKey(a)));
+    const joined = pending.slice(0, NEWCOMER_LIMIT);
+    document.getElementById("newcomer-count").textContent = `(${pending.length}명)`;
 
     if (joined.length === 0) {
       box.hidden = true;
@@ -3772,8 +3801,9 @@
 
     box.hidden = false;
     chips.innerHTML = joined.map(m => {
-      const when = String(m.date || "");
-      const fresh = daysSince(when) <= NEWCOMER_FRESH_DAYS;
+      const when = String(m.joinedAt || m.date || "").slice(0, 10);
+      const age = daysSince(when);
+      const fresh = age >= 0 && age <= NEWCOMER_FRESH_DAYS;
       return `
         <span class="newcomer-chip ${fresh ? 'fresh' : ''}">
           <span>${escapeHtml(m.name)}</span>
@@ -4149,6 +4179,7 @@
       channel: document.getElementById("intro-channel").value,
       bio: document.getElementById("intro-bio").value.trim(),
       date: new Date().toISOString().split("T")[0],
+      createdAt: new Date().toISOString(),
       // 관리자 승인 전까지는 항상 대기 상태입니다. 규칙에서도 강제합니다.
       status: "pending",
       approved: false,
