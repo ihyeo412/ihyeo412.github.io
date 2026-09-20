@@ -1913,6 +1913,7 @@
     <section class="section" id="all-reports">
       <div class="section-head"><h2>산행 후기</h2><span class="period">전체 후기</span></div>
       <div class="reports" id="all-report-list"></div>
+      <nav class="pagination" id="report-pagination" aria-label="산행 후기 페이지"></nav>
     </section>
   </main>
 
@@ -2640,6 +2641,8 @@
 
   let hikesState = [];
   let reportsState = [];
+  const REPORTS_PER_PAGE = 8;
+  let currentReportPage = 1;
   let introsState = [];
   let membersState = [];
   let infosState = [];
@@ -4677,8 +4680,8 @@
   };
 
   /* ── Hike Render ───────────────────────────────────────────────────── */
-  function renderPagination(totalItems, currentPage, containerId, changePageFunc) {
-    const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE) || 1;
+  function renderPagination(totalItems, currentPage, containerId, changePageFunc, itemsPerPage = ITEMS_PER_PAGE) {
+    const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
     const nav = document.getElementById(containerId);
     
     if (totalPages <= 1) {
@@ -4804,9 +4807,19 @@
     const sortedReports = [...reportsState].sort((a, b) =>
       String(b.createdAt || "").localeCompare(String(a.createdAt || ""))
     );
-    renderReportList("report-list", sortedReports.slice(0, 8));
-    renderReportList("all-report-list", sortedReports);
+    renderReportList("report-list", sortedReports.slice(0, REPORTS_PER_PAGE));
+    const totalPages = Math.ceil(sortedReports.length / REPORTS_PER_PAGE) || 1;
+    currentReportPage = Math.max(1, Math.min(currentReportPage, totalPages));
+    const start = (currentReportPage - 1) * REPORTS_PER_PAGE;
+    renderReportList("all-report-list", sortedReports.slice(start, start + REPORTS_PER_PAGE));
+    renderPagination(sortedReports.length, currentReportPage, "report-pagination", "changeReportPage", REPORTS_PER_PAGE);
   }
+
+  window.changeReportPage = function(page) {
+    currentReportPage = page;
+    renderReports();
+    document.getElementById("all-reports").scrollIntoView({ block: "start" });
+  };
 
   function renderReportList(containerId, reports) {
     const container = document.getElementById(containerId);
