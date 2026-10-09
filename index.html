@@ -1813,6 +1813,7 @@
       </div>
 
       <div class="reports" id="report-list"></div>
+      <nav class="pagination" id="home-report-pagination" aria-label="첫 화면 산행 후기 페이지"></nav>
     </section>
 
     <!-- ── Join Section ────────────────────────────────────────────── -->
@@ -2644,6 +2645,7 @@
   let reportsState = [];
   const REPORTS_PER_PAGE = 8;
   let currentReportPage = 1;
+  let currentHomeReportPage = 1;
   let introsState = [];
   let membersState = [];
   let infosState = [];
@@ -4812,13 +4814,23 @@
     const sortedReports = [...reportsState].sort((a, b) =>
       String(b.createdAt || "").localeCompare(String(a.createdAt || ""))
     );
-    renderReportList("report-list", sortedReports.slice(0, REPORTS_PER_PAGE));
+
     const totalPages = Math.ceil(sortedReports.length / REPORTS_PER_PAGE) || 1;
+    currentHomeReportPage = Math.max(1, Math.min(currentHomeReportPage, totalPages));
+    const homeStart = (currentHomeReportPage - 1) * REPORTS_PER_PAGE;
+    renderReportList("report-list", sortedReports.slice(homeStart, homeStart + REPORTS_PER_PAGE));
+    renderPagination(sortedReports.length, currentHomeReportPage, "home-report-pagination", "changeHomeReportPage", REPORTS_PER_PAGE);
     currentReportPage = Math.max(1, Math.min(currentReportPage, totalPages));
     const start = (currentReportPage - 1) * REPORTS_PER_PAGE;
     renderReportList("all-report-list", sortedReports.slice(start, start + REPORTS_PER_PAGE));
     renderPagination(sortedReports.length, currentReportPage, "report-pagination", "changeReportPage", REPORTS_PER_PAGE);
   }
+
+  window.changeHomeReportPage = function(page) {
+    currentHomeReportPage = page;
+    renderReports();
+    document.getElementById("reports").scrollIntoView({ block: "start" });
+  };
 
   window.changeReportPage = function(page) {
     currentReportPage = page;
