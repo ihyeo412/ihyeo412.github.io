@@ -101,3 +101,16 @@ match /reports/{reportId}/comments/{commentId}/reactions/{uid} {
     request.resource.data.updatedAt == request.time;
   allow delete: if false;
 }
+
+match /reports/{reportId}/reactions/{uid} {
+  allow read: if commentCanRead(reportId);
+  allow create, update: if commentCanRead(reportId) && request.auth.uid == uid &&
+    request.resource.data.keys().hasAll(['emojis', 'updatedAt']) &&
+    request.resource.data.keys().hasOnly(['emojis', 'updatedAt']) &&
+    request.resource.data.emojis is list && request.resource.data.emojis.size() <= 6 &&
+    request.resource.data.emojis.toSet().size() == request.resource.data.emojis.size() &&
+    request.resource.data.emojis.hasOnly(['❤️', '👍', '😊', '👏', '🎉', '⛰️']) &&
+    request.resource.data.updatedAt == request.time;
+  allow delete: if false;
+}
+

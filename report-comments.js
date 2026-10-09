@@ -43,7 +43,7 @@
       </form>`;
     document.querySelectorAll('.report-comments').forEach(el => el.remove());
     document.getElementById('report-detail-view').append(section);
-    const ctx = {reportId: report.id, uid: getCurrentUid(), section, rows: [], limit: 50, ready: false, reactions: new Map()};
+    const ctx = {reportId: report.id, uid: getCurrentUid(), section, rows: [], limit: 50, ready: false, reactions: new Map(), reportReactionKey: Symbol()};
     active = ctx;
     const status = section.querySelector('.comments-status');
     const submit = section.querySelector('[type="submit"]');
@@ -109,15 +109,17 @@
       }
     }
 
-    function reactionBar(row) {
+    function reactionBar(row = null) {
+      const key = row ? row.id : ctx.reportReactionKey;
+      const reactionCollection = row ? collection.doc(row.id).collection('reactions') : db.collection('reports').doc(ctx.reportId).collection('reactions');
       const bar = document.createElement('div');
       bar.className = 'comment-reactions';
-      bar.setAttribute('aria-label', '댓글 이모티콘 반응');
-      let entry = ctx.reactions.get(row.id);
+      bar.setAttribute('aria-label', row ? '댓글 이모티콘 반응' : '산행 후기 이모티콘 반응');
+      let entry = ctx.reactions.get(key);
       if (!entry) {
         entry = {docs: [], ready: false, busy: false};
-        ctx.reactions.set(row.id, entry);
-        entry.unsubscribe = collection.doc(row.id).collection('reactions').onSnapshot(snapshot => {
+        ctx.reactions.set(key, entry);
+        entry.unsubscribe = reactionCollection.onSnapshot(snapshot => {
           if (active !== ctx) return;
           entry.docs = snapshot.docs.map(doc => ({uid: doc.id, ...doc.data()}));
           entry.ready = true;
@@ -135,7 +137,7 @@
         if (active !== ctx || !entry.ready || entry.busy) return;
         entry.busy = true; entry.paint();
         try {
-          const ref = collection.doc(row.id).collection('reactions').doc(ctx.uid);
+          const ref = reactionCollection.doc(ctx.uid);
           await db.runTransaction(async transaction => {
             const previous = await transaction.get(ref);
             const selected = previous.exists ? previous.data().emojis : [];
@@ -234,7 +236,7 @@
         ctx.rows = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
         const visibleIds = new Set(ctx.rows.filter(row => !row.hidden && !row.deleted).map(row => row.id));
         ctx.reactions.forEach((entry, id) => {
-          if (!visibleIds.has(id)) { entry.unsubscribe(); ctx.reactions.delete(id); }
+          if (id !== ctx.reportReactionKey && !visibleIds.has(id)) { entry.unsubscribe(); ctx.reactions.delete(id); }
         });
         ctx.ready = true; submit.disabled = !!ctx.busy;
         section.querySelector('.comments-more').hidden = snapshot.size < ctx.limit;
@@ -250,7 +252,10 @@
     section.querySelector('.comments-more').addEventListener('click', () => { ctx.limit += 50; subscribe(); });
     try {
       if (!isReportPublic(report)) await prepareMembership();
-      if (active === ctx) subscribe();
+      if (active === ctx) {
+        section.prepend(reactionBar());
+        subscribe();
+      }
     } catch (err) { if (active === ctx) status.textContent = message(err); }
   };
 
