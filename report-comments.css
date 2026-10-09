@@ -1,0 +1,11 @@
+.report-comments { margin-top: 1.5rem; }
+.report-comments h3 { font-family: var(--f-display); margin-bottom: .75rem; }
+.report-comments p { margin: .6rem 0; }
+.comments-status, .comment-meta { font-size: .85rem; color: var(--forest); }
+.comment-item { padding: 1rem 0; border-bottom: 1px solid var(--hairline); }
+.comment-body { white-space: pre-wrap; overflow-wrap: anywhere; }
+.comment-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.comments-form { display: grid; gap: .75rem; margin-top: 1.5rem; }
+.report-comments textarea { width: 100%; box-sizing: border-box; padding: .75rem; font: inherit; resize: vertical; }
+.comments-form button { justify-self: start; }
+.comment-honeypot { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }

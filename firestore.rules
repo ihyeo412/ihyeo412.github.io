@@ -1,0 +1,372 @@
+rules_version = '2';
+
+// ihiker.org Firestore Î≥¥Ïïà Í∑úÏπô
+//
+// Î∞∞Ìè¨ Ï†Ñ Ï§ÄÎπÑ:
+//   1. Firebase ÏΩòÏÜî > Authentication > Sign-in method ÏóêÏÑú [Ïù¥Î©îÏùº/ÎπÑÎ∞ÄÎ≤àÌò∏] ÌôúÏÑ±Ìôî
+//   2. ÏÇ¨Ïù¥Ìä∏ÏóêÏÑú ÏõêÌïòÎäî Í¥ÄÎ¶¨Ïûê ÎãâÎÑ§ÏûÑÏúºÎ°ú ÌöåÏõêÍ∞ÄÏûÖ (ÎãâÎÑ§ÏûÑÏùÄ ÏûêÏú†)
+//   3. ÏΩòÏÜî > Firestore > users/{Í∑∏ uid} Î¨∏ÏÑúÏùò role ÏùÑ "member" -> "admin" ÏúºÎ°ú Î≥ÄÍ≤Ω
+//      Í¥ÄÎ¶¨Ïûê ÌåêÏ†ïÏùÄ Ïù¥ role Í∞íÎßå Î¥ÖÎãàÎã§. ÌäπÏ†ï ÎãâÎÑ§ÏûÑÏóê ÌäπÎ≥ÑÌïú Í∂åÌïúÏùÄ ÏóÜÏäµÎãàÎã§.
+//   4. Ïù¥ ÌååÏùº Î∞∞Ìè¨:  firebase deploy --only firestore:rules
+//      (ÎòêÎäî ÏΩòÏÜî > Firestore > Í∑úÏπô ÌÉ≠Ïóê Î∂ôÏó¨ÎÑ£Í∏∞)
+//
+// ÌïµÏã¨ Í∞úÎÖê:
+//   - ÏùΩÍ∏∞Îäî Í≥µÍ∞ú(ÌöåÏõê Î™ÖÎã®¬∑ÏùºÏ†ï¬∑ÌõÑÍ∏∞Î•º ÎàÑÍµ¨ÎÇò Î≥º Ïàò ÏûàÎäî ÌòÑÏû¨ ÎèôÏûë Ïú†ÏßÄ)
+//   - Ïì∞Í∏∞Îäî Î°úÍ∑∏Ïù∏ ÌïÑÏàò
+//   - ÏàòÏ†ï¬∑ÏÇ≠Ï†úÎäî Î¨∏ÏÑúÏùò ownerUid Î≥∏Ïù∏ ÎòêÎäî Í¥ÄÎ¶¨ÏûêÎßå
+//   - ownerUid Í∞Ä ÏóÜÎäî Í≥ºÍ±∞ Î¨∏ÏÑúÎäî Í¥ÄÎ¶¨ÏûêÎßå ÏÜêÎåà Ïàò ÏûàÏäµÎãàÎã§
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Ïù¥ Î¨∏ÏÑúÏùò ÏÜåÏú†ÏûêÏù∏Í∞Ä.
+    // ownerUid Í∞Ä ÏóÜÎäî Í≥ºÍ±∞ Î¨∏ÏÑúÎäî get Ïù¥ '' Î•º ÎèåÎ†§Ï£ºÎØÄÎ°ú Ï†àÎåÄ ÏùºÏπòÌïòÏßÄ ÏïäÏäµÎãàÎã§.
+    // Ï¶â Í≥ºÍ±∞ Î¨∏ÏÑúÎäî Í¥ÄÎ¶¨ÏûêÏóêÍ≤åÎßå Îß°Í≤®ÏßëÎãàÎã§.
+    function isOwner() {
+      return isSignedIn()
+        && resource.data.get('ownerUid', '') == request.auth.uid;
+    }
+
+    // ÏÉàÎ°ú ÎßåÎìúÎäî Î¨∏ÏÑúÎäî ÏûêÍ∏∞ uid Î•º ÏÜåÏú†ÏûêÎ°ú Î∞ïÏïÑÏïº Ìï©ÎãàÎã§.
+    function claimsOwnSelf() {
+      return isSignedIn()
+        && request.resource.data.get('ownerUid', '') == request.auth.uid;
+    }
+
+    // Í∞íÏù¥ ÏóÜÏúºÎ©¥ '' Î°ú ÏùΩÌòÄ ÌÜµÍ≥ºÌï©ÎãàÎã§(ÏÑ†ÌÉù ÌïÑÎìú).
+    function isShortString(field, maxLen) {
+      return request.resource.data.get(field, '') is string
+        && request.resource.data.get(field, '').size() <= maxLen;
+    }
+
+    // ‚îÄ‚îÄ Í∞ÄÏûÖ ÏäπÏù∏ ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
+    // Î¨∏ÏÑú IDÍ∞Ä ÎãâÎÑ§ÏûÑÏûÖÎãàÎã§. Í¥ÄÎ¶¨ÏûêÍ∞Ä Í∞ÄÏûÖ Ïù∏ÏÇ¨Î•º Î≥¥Í≥† ÏäπÏù∏ÌïòÎ©¥ Ïó¨Í∏∞Ïóê ÏÉùÍπÅÎãàÎã§.
+    // Í∑úÏπôÏùÄ Ïª¨Î†âÏÖòÏùÑ Ï°∞ÌöåÌï† Ïàò ÏóÜÍ≥† ÌäπÏ†ï Î¨∏ÏÑúÎßå ÏùΩÏùÑ Ïàò ÏûàÏñ¥ÏÑú,
+    // ÎãâÎÑ§ÏûÑÏúºÎ°ú Î∞îÎ°ú Ï∞æÏùÑ Ïàò ÏûàÍ≤å Ïù¥Îü∞ ÌòïÌÉúÎ°ú Îë°ÎãàÎã§.
+    function isApprovedNickname(nick) {
+      return exists(/databases/$(database)/documents/approvals/$(nick))
+        && get(/databases/$(database)/documents/approvals/$(nick)).data.approved == true
+        && get(/databases/$(database)/documents/approvals/$(nick)).data.claimed != true;
+    }
+
+    match /approvals/{nickname} {
+      // Í∞ÄÏûÖ ÌôîÎ©¥ÏóêÏÑú ÏäπÏù∏ Ïó¨Î∂ÄÎ•º ÌôïÏù∏Ìï¥Ïïº ÌïòÎØÄÎ°ú Îã®Í±¥ Ï°∞ÌöåÎäî Í≥µÍ∞úÌï©ÎãàÎã§.
+      // Î™©Î°ù Ï°∞ÌöåÎäî Í¥ÄÎ¶¨ÏûêÎßå ‚Äî ÏäπÏù∏ ÎåÄÍ∏∞ ÎãâÎÑ§ÏûÑÏùÑ Í∏ÅÏñ¥Í∞ÄÏßÄ Î™ªÌïòÍ≤å Ìï©ÎãàÎã§.
+      allow get: if true;
+      allow list: if isAdmin();
+      allow create, delete: if isAdmin();
+
+      // Í∞ÄÏûÖÏùÑ ÎßàÏπú Î≥∏Ïù∏Ïù¥ claimed Îßå true Î°ú Î∞îÍøâÎãàÎã§(Ïû¨ÏÇ¨Ïö© Î∞©ÏßÄ).
+      allow update: if isAdmin()
+                    || (isSignedIn()
+                        && request.resource.data.diff(resource.data).affectedKeys()
+                             .hasOnly(['claimed'])
+                        && request.resource.data.claimed == true);
+    }
+
+    // ‚îÄ‚îÄ Í∞ÄÏûÖ Ïù∏ÏÇ¨ Ïó∞ÎùΩÏ≤ò (Ïù¥Î©îÏùº) ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
+    // intros Îäî ÏùΩÍ∏∞Í∞Ä Í≥µÍ∞úÏù¥ÎØÄÎ°ú Ïù¥Î©îÏùºÏùÑ Í∑∏Ï™ΩÏóê ÎëêÎ©¥ ÎàÑÍµ¨ÎÇò Í∏ÅÏñ¥Í∞à Ïàò ÏûàÏäµÎãàÎã§.
+    // Í∑∏ÎûòÏÑú Ï£ºÏÜåÎäî Ïó¨Í∏∞ Îî∞Î°ú ÎëêÍ≥† Í¥ÄÎ¶¨ÏûêÎßå ÏùΩÍ≤å Ìï©ÎãàÎã§. Î¨∏ÏÑú IDÎäî intros Î¨∏ÏÑú ID.
+    match /introContacts/{introId} {
+      allow read: if isAdmin();
+
+      // ÏïÑÏßÅ ÌöåÏõêÏù¥ ÏïÑÎãå Î∂ÑÏù¥ Í∞ÄÏûÖ Ïù∏ÏÇ¨ÏôÄ Ìï®Íªò ÎÇ®Í∏∞ÎØÄÎ°ú ÏÉùÏÑ±ÏùÄ Î°úÍ∑∏Ïù∏ ÏóÜÏù¥ ÌóàÏö©Ìï©ÎãàÎã§.
+      allow create: if request.resource.data.email is string
+                    && request.resource.data.email.size() > 0
+                    && request.resource.data.email.size() <= 200
+                    && request.resource.data.nickname is string
+                    && request.resource.data.nickname.size() <= 30;
+
+      allow update, delete: if isAdmin();
+    }
+
+    // ‚îÄ‚îÄ ÏÇ¨Ïö©Ïûê ÌîÑÎ°úÌïÑ ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
+    // Î≥∏Ïù∏Í≥º Í¥ÄÎ¶¨ÏûêÎßå ÏùΩÏäµÎãàÎã§. ÎπÑÎ∞ÄÎ≤àÌò∏Îäî Ï†ÄÏû•ÌïòÏßÄ ÏïäÏäµÎãàÎã§(AuthÍ∞Ä Í¥ÄÎ¶¨).
+    match /users/{uid} {
+      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+
+      // Í∞ÄÏûÖ Ïãú Î≥∏Ïù∏ Î¨∏ÏÑúÎßå ÏÉùÏÑ±. Ïä§Ïä§Î°ú Í¥ÄÎ¶¨ÏûêÍ∞Ä Îê† ÏàòÎäî ÏóÜÏäµÎãàÎã§.
+      // Í¥ÄÎ¶¨ÏûêÍ∞Ä ÏäπÏù∏Ìïú ÎãâÎÑ§ÏûÑÏù¥Ïñ¥ÏïºÎßå ÎßåÎì§ Ïàò ÏûàÏäµÎãàÎã§.
+      allow create: if isSignedIn()
+                    && request.auth.uid == uid
+                    && request.resource.data.role == 'member'
+                    && request.resource.data.nickname is string
+                    && request.resource.data.nickname.size() > 0
+                    && request.resource.data.nickname.size() <= 30
+                    && isApprovedNickname(request.resource.data.nickname);
+
+      // ÎãâÎÑ§ÏûÑ Îì±ÏùÄ Î≥∏Ïù∏Ïù¥ Í≥†Ïπ† Ïàò ÏûàÏßÄÎßå role ÏäπÍ≤©ÏùÄ Í¥ÄÎ¶¨ÏûêÎßå.
+      allow update: if isAdmin()
+                    || (isSignedIn()
+                        && request.auth.uid == uid
+                        && request.resource.data.role == resource.data.role
+                        && request.resource.data.nickname == resource.data.nickname);
+
+      // Î≥∏Ïù∏ ÌÉàÌá¥(ÏûêÍ∏∞ ÌîÑÎ°úÌïÑ ÏÇ≠Ï†ú)ÏôÄ Í¥ÄÎ¶¨ÏûêÏùò Ï†ïÎ¶¨Î•º Î™®Îëê ÌóàÏö©Ìï©ÎãàÎã§.
+      allow delete: if isAdmin() || (isSignedIn() && request.auth.uid == uid);
+    }
+
+    // ‚îÄ‚îÄ ÏÇ∞Ìñâ ÏùºÏ†ï ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
+    match /hikes/{hikeId} {
+      allow read: if true;
+
+      allow create: if claimsOwnSelf()
+                    && request.resource.data.name is string
+                    && request.resource.data.name.size() > 0
+                    && request.resource.data.name.size() <= 200
+                    && isShortString('host', 50)
+                    && isShortString('notes', 500)
+                    && isShortString('gmap', 2000)
+                    && isShortString('alltrails', 2000);
+
+      allow delete: if isOwner() || isAdmin();
+
+      // ÏùºÏ†ï ÎÇ¥Ïö© ÏàòÏ†ïÏùÄ Ï£ºÏµúÏûê/Í¥ÄÎ¶¨ÏûêÎßå.
+      // Ï∞∏Í∞Ä Ïã†Ï≤≠ ÎåìÍ∏Ä(rsvps)ÏùÄ Î°úÍ∑∏Ïù∏Ìïú ÌöåÏõê ÎàÑÍµ¨ÎÇò ÎÇ®Í∏∏ Ïàò ÏûàÏñ¥Ïïº ÌïòÎØÄÎ°ú,
+      // rsvps ÌïÑÎìúÎßå Î∞îÎÄåÎäî ÏàòÏ†ïÏùÄ Î≥ÑÎèÑÎ°ú ÌóàÏö©Ìï©ÎãàÎã§.
+      allow update: if isOwner()
+                    || isAdmin()
+                    || (isSignedIn()
+                        && request.resource.data.diff(resource.data).affectedKeys()
+                             .hasOnly(['rsvps'])
+                        && request.resource.data.rsvps is list
+                        && request.resource.data.rsvps.size() <= 200);
+    }
+
+    // ‚îÄ‚îÄ ÏÇ∞Ìñâ ÌõÑÍ∏∞ ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
+    // visibility: 'all' = Ï†ÑÏ≤¥ Í≥µÍ∞ú, 'regular' = Ï†ïÌöåÏõê Ï†ÑÏö©.
+    // Í∞íÏù¥ ÏóÜÎäî ÏòàÏ†Ñ ÌõÑÍ∏∞Îäî Ïï±ÏóêÏÑú Ï†ïÌöåÏõê Ï†ÑÏö©ÏúºÎ°ú Ï∑®Í∏âÌï©ÎãàÎã§.
+    function hasValidVisibility() {
+      return request.resource.data.get('visibility', 'regular') in ['all', 'regular'];
+    }
+
+    match /reports/{reportId} {
+      allow read: if true;
+
+      allow create: if claimsOwnSelf()
+                    && request.resource.data.title is string
+                    && request.resource.data.title.size() > 0
+                    && request.resource.data.title.size() <= 300
+                    && isShortString('kind', 50)
+                    && isShortString('by', 100)
+                    && isShortString('youtube', 2000)
+                    && hasValidVisibility();
+
+      allow update: if (isOwner() || isAdmin()) && hasValidVisibility();
+      allow delete: if isOwner() || isAdmin();
+    }
+
+    // ‚îÄ‚îÄ Í∞ÄÏûÖ Ïù∏ÏÇ¨ ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
+    match /intros/{introId} {
+      allow read: if true;
+
+      // ÏïÑÏßÅ ÌöåÏõêÏù¥ ÏïÑÎãå Î∂ÑÏù¥ Í∞ÄÏûÖ Ïù∏ÏÇ¨Î•º ÎÇ®Í≤®Ïïº ÌïòÎØÄÎ°ú Î°úÍ∑∏Ïù∏ ÏóÜÏù¥ ÌóàÏö©Ìï©ÎãàÎã§.
+      // ÎåÄÏã† Î∞òÎìúÏãú 'ÏäπÏù∏ ÎåÄÍ∏∞' ÏÉÅÌÉúÎ°úÎßå ÎßåÎì§ Ïàò ÏûàÍ≥†, Ïä§Ïä§Î°ú ÏäπÏù∏Ìï† Ïàò ÏóÜÏäµÎãàÎã§.
+      // ownerUid Í∞Ä ÏóÜÏúºÎãà Ïù¥Î†áÍ≤å ÎßåÎì§Ïñ¥ÏßÑ Í∏ÄÏùÄ Í¥ÄÎ¶¨ÏûêÎßå ÏßÄÏö∏ Ïàò ÏûàÏäµÎãàÎã§.
+      allow create: if request.resource.data.nickname is string
+                    && request.resource.data.nickname.size() > 0
+                    && request.resource.data.nickname.size() <= 30
+                    && isShortString('location', 100)
+                    && isShortString('bio', 2000)
+                    && request.resource.data.get('status', '') == 'pending'
+                    && request.resource.data.get('approved', false) == false;
+
+      allow delete: if isOwner() || isAdmin();
+
+      // ÌôòÏòÅ Ïù∏ÏÇ¨(welcomes)ÎèÑ rsvps ÏôÄ Í∞ôÏùÄ Ïù¥Ïú†Î°ú ÌöåÏõê ÎàÑÍµ¨ÎÇò Ï∂îÍ∞ÄÌï† Ïàò ÏûàÏäµÎãàÎã§.
+      // ÏäπÏù∏ ÏÉÅÌÉú(status/approved) Î≥ÄÍ≤ΩÏùÄ Í¥ÄÎ¶¨ÏûêÎßå Ìï† Ïàò ÏûàÏäµÎãàÎã§.
+      allow update: if isAdmin()
+                    || (isOwner()
+                        && request.resource.data.get('status', '') == resource.data.get('status', '')
+                        && request.resource.data.get('approved', false) == resource.data.get('approved', false))
+                    || (isSignedIn()
+                        && request.resource.data.diff(resource.data).affectedKeys()
+                             .hasOnly(['welcomes'])
+                        && request.resource.data.welcomes is list
+                        && request.resource.data.welcomes.size() <= 200);
+    }
+
+    // ‚îÄ‚îÄ Í≥µÏßÄ ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
+    // ÏùΩÍ∏∞Îäî ÎàÑÍµ¨ÎÇò. Ïì∞Í∏∞Îäî Ïö¥ÏòÅ Ï†ïÎ≥¥Ïù¥ÎØÄÎ°ú Í¥ÄÎ¶¨ÏûêÎßå.
+    match /notices/{noticeId} {
+      allow read: if true;
+
+      allow create: if isAdmin()
+                    && request.resource.data.title is string
+                    && request.resource.data.title.size() > 0
+                    && request.resource.data.title.size() <= 200
+                    && isShortString('content', 5000)
+                    && isShortString('by', 100)
+                    && request.resource.data.get('pinned', false) is bool;
+
+      allow update: if isAdmin()
+                    && isShortString('content', 5000)
+                    && request.resource.data.get('pinned', false) is bool;
+
+      allow delete: if isAdmin();
+    }
+
+    // ‚îÄ‚îÄ Í∏∞ÌÉÄ Ï†ïÎ≥¥ (ÌçºÎ∞ã¬∑ÏòàÏïΩ¬∑Ïù¥Ïö© ÏïàÎÇ¥) ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
+    // ÏÇ¨ÏßÑÏùÄ Î¨∏ÏÑú ÏïàÏóê base64 Î°ú Îì§Ïñ¥Í∞ëÎãàÎã§. Ïû•ÏàòÎßå Ï†úÌïúÌïòÍ≥†,
+    // Ï†ÑÏ≤¥ Ïö©ÎüâÏùÄ Firestore ÏûêÏ≤¥Ïùò Î¨∏ÏÑú 1 MiB ÌïúÎèÑÍ∞Ä ÎßâÏïÑ Ï§çÎãàÎã§.
+    function hasSaneLists() {
+      return request.resource.data.get('links', []) is list
+        && request.resource.data.get('links', []).size() <= 30
+        && request.resource.data.get('images', []) is list
+        && request.resource.data.get('images', []).size() <= 6
+        && request.resource.data.get('order', 0) is int;
+    }
+
+    match /infos/{infoId} {
+      allow read: if true;
+
+      allow create: if claimsOwnSelf()
+                    && request.resource.data.title is string
+                    && request.resource.data.title.size() > 0
+                    && request.resource.data.title.size() <= 200
+                    && isShortString('content', 5000)
+                    && isShortString('by', 100)
+                    && hasSaneLists();
+
+      allow update: if (isOwner() || isAdmin())
+                    && isShortString('content', 5000)
+                    && hasSaneLists();
+
+      allow delete: if isOwner() || isAdmin();
+    }
+
+    // ‚îÄ‚îÄ ÌöåÏõê Î™ÖÎã® ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
+    match /members/{memberId} {
+      allow read: if true;
+
+      // Í∞ÄÏûÖÌïòÎ©¥ Î≥∏Ïù∏ Ïù¥Î¶ÑÏù¥ 'Ïã†ÏûÖ ÌöåÏõê(three)'ÏúºÎ°ú ÏûêÎèô Îì±Î°ùÎê©ÎãàÎã§.
+      // ÏùºÎ∞ò ÌöåÏõêÏùÄ 'regular' Ï§ÑÏùÑ Ïä§Ïä§Î°ú ÎßåÎì§ Ïàò ÏóÜÏäµÎãàÎã§.
+      // (ÏòàÏ†ÑÏóêÎäî ÎßâÏßÄ ÏïäÏïÑÏÑú, Î™ÖÎã® Îì±Î°ù ÌôîÎ©¥ÏúºÎ°ú ÏûêÍ∏∞ Ïù¥Î¶ÑÏùò Ï†ïÌöåÏõê Ï§ÑÏùÑ
+      //  ÏÉàÎ°ú ÎßåÎì§Ïñ¥ Îì±Í∏âÏùÑ Ïò¨Î¶¥ Ïàò ÏûàÏóàÏäµÎãàÎã§.)
+      allow create: if isAdmin()
+                    || (claimsOwnSelf()
+                        && request.resource.data.name is string
+                        && request.resource.data.name.size() > 0
+                        && request.resource.data.name.size() <= 30
+                        && request.resource.data.status == 'three');
+
+      // Îì±Í∏â(status) Î≥ÄÍ≤ΩÏùÄ Í¥ÄÎ¶¨ÏûêÎßå.
+      allow update: if isAdmin()
+                    || (isOwner()
+                        && request.resource.data.status == resource.data.status
+                        && request.resource.data.name == resource.data.name
+                        && request.resource.data.get('ownerUid', '') == resource.data.get('ownerUid', ''));
+
+      allow delete: if isOwner() || isAdmin();
+    }
+
+    // ‚îÄ‚îÄ ÏµúÏ¥à 1Ìöå ÏãúÎìú ÌëúÏãù ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
+    // ÎπÑÏñ¥ ÏûàÎäî DBÎ•º Ï≤òÏùå Ï±ÑÏõ†ÎäîÏßÄ Í∏∞Î°ùÌïòÎäî Î¨∏ÏÑúÏûÖÎãàÎã§.
+    // Ìïú Î≤à ÎßåÎì§Ïñ¥ÏßÄÎ©¥ Í¥ÄÎ¶¨ÏûêÎßå ÏÜêÎåà Ïàò ÏûàÏñ¥, Í∏∞Î≥∏ Îç∞Ïù¥ÌÑ∞Í∞Ä ÎêòÏÇ¥ÏïÑÎÇòÏßÄ ÏïäÏäµÎãàÎã§.
+    match /meta/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Í∑∏ Î∞ñÏùò Î™®Îì† Í≤ΩÎ°úÎäî Ï∞®Îã®Ìï©ÎãàÎã§.
+// MERGE INSIDE match /databases/{database}/documents IN THE EXISTING RULES.
+// This fragment is NOT a replacement ruleset. Audit all overlapping allow rules:
+// an existing allow-all wildcard would bypass these restrictions.
+// Existing users rules MUST prevent members changing their nickname or role.
+
+function commentProfile() {
+  return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+}
+function commentAdmin() {
+  return request.auth != null && commentProfile().role == 'admin';
+}
+function commentVerifiedMember(memberId) {
+  let member = get(/databases/$(database)/documents/members/$(memberId)).data;
+  return member.name == commentProfile().nickname && member.status == 'regular';
+}
+function commentRegular() {
+  let pointer = get(/databases/$(database)/documents/commentMemberships/$(request.auth.uid)).data;
+  return commentVerifiedMember(pointer.memberId);
+}
+function commentCanRead(reportId) {
+  let report = get(/databases/$(database)/documents/reports/$(reportId)).data;
+  return request.auth != null &&
+    (report.get('visibility', 'regular') == 'all' || commentAdmin() || commentRegular());
+}
+function commentValid(data) {
+  return data.keys().hasAll(['authorUid', 'authorName', 'body', 'createdAt', 'updatedAt', 'hidden', 'deleted']) &&
+    data.keys().hasOnly(['authorUid', 'authorName', 'body', 'createdAt', 'updatedAt', 'hidden', 'deleted']) &&
+    data.authorUid is string && data.authorName is string &&
+    data.body is string && data.body.size() <= 2000 &&
+    data.createdAt is timestamp && data.updatedAt == request.time &&
+    data.hidden is bool && data.deleted is bool &&
+    ((data.deleted && data.body == '') || (!data.deleted && !data.body.matches('\\s*')));
+}
+function commentThrottledWrite(reportId, commentId) {
+  let path = /databases/$(database)/documents/commentRateLimits/$(request.auth.uid);
+  let after = getAfter(path).data;
+  return (!exists(path) || get(path).data.lastWriteAt + duration.value(60, 's') <= request.time) &&
+    after.lastWriteAt == request.time && after.reportId == reportId && after.commentId == commentId;
+}
+
+match /commentMemberships/{uid} {
+  allow read: if request.auth != null && request.auth.uid == uid;
+  allow create, update: if request.auth != null && request.auth.uid == uid &&
+    request.resource.data.keys().hasOnly(['memberId']) &&
+    request.resource.data.memberId is string &&
+    commentVerifiedMember(request.resource.data.memberId);
+  allow delete: if false;
+}
+match /commentRateLimits/{uid} {
+  allow read: if request.auth != null && request.auth.uid == uid;
+  allow create, update: if request.auth != null && request.auth.uid == uid &&
+    request.resource.data.keys().hasAll(['lastWriteAt', 'reportId', 'commentId']) &&
+    request.resource.data.keys().hasOnly(['lastWriteAt', 'reportId', 'commentId']) &&
+    request.resource.data.reportId is string && request.resource.data.commentId is string &&
+    request.resource.data.lastWriteAt == request.time &&
+    (!exists(/databases/$(database)/documents/commentRateLimits/$(uid)) ||
+      resource.data.lastWriteAt + duration.value(60, 's') <= request.time) &&
+    getAfter(/databases/$(database)/documents/reports/$(request.resource.data.reportId)/comments/$(request.resource.data.commentId)).data.authorUid == uid &&
+    getAfter(/databases/$(database)/documents/reports/$(request.resource.data.reportId)/comments/$(request.resource.data.commentId)).data.updatedAt == request.time;
+  allow delete: if false;
+}
+match /reports/{reportId}/comments/{commentId} {
+  allow read: if commentCanRead(reportId);
+  allow create: if commentCanRead(reportId) && commentValid(request.resource.data) &&
+    request.resource.data.authorUid == request.auth.uid &&
+    request.resource.data.authorName == commentProfile().nickname &&
+    request.resource.data.createdAt == request.time &&
+    request.resource.data.hidden == false && request.resource.data.deleted == false &&
+    commentThrottledWrite(reportId, commentId);
+  allow update: if commentCanRead(reportId) && commentValid(request.resource.data) &&
+    request.resource.data.authorUid == resource.data.authorUid &&
+    request.resource.data.authorName == resource.data.authorName &&
+    request.resource.data.createdAt == resource.data.createdAt &&
+    resource.data.deleted == false &&
+    (
+      (commentAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['hidden', 'updatedAt'])) ||
+      ((resource.data.authorUid == request.auth.uid || commentAdmin()) &&
+        request.resource.data.deleted == true && request.resource.data.body == '' &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['body', 'deleted', 'updatedAt'])) ||
+      (resource.data.authorUid == request.auth.uid && resource.data.hidden == false &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['body', 'updatedAt']) &&
+        commentThrottledWrite(reportId, commentId))
+    );
+  allow delete: if false;
+}
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
