@@ -2100,8 +2100,8 @@
 
       <div class="form-grid">
         <label class="full">
-          <span>Username (아이디)</span>
-          <input type="text" id="auth-username" placeholder="예: 산대장" required autocomplete="username">
+          <span id="auth-identity-label">닉네임 또는 연결한 이메일</span>
+          <input type="text" id="auth-username" placeholder="닉네임 또는 이메일" required autocomplete="username">
         </label>
         <label class="full">
           <span>Password (비밀번호)</span>
@@ -2120,6 +2120,7 @@
         </button>
       </div>
 
+      <button type="button" id="forgot-password-btn" class="btn btn-ghost btn-sm" onclick="openPasswordRecovery()">비밀번호를 잊으셨나요?</button>
       <p id="auth-error-msg" style="display:none; color:#d9534f; font-size:0.8rem; margin:0; white-space:pre-line;"></p>
 
       <div class="modal-foot" style="justify-content: space-between; align-items: center;">
@@ -3073,6 +3074,7 @@
       container.innerHTML = `
         <div class="user-badge">
           <span>👤 ${escapeHtml(user)} <small style="color:${isMaster ? 'var(--accent)' : (regularStatus ? 'var(--forest)' : 'var(--muted)')}; font-weight:600;">[${badgeText}]</small></span>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="openRecoveryEmail()">이메일 연결</button>
           <button type="button" onclick="openChangePwdModal()" style="background:none; border:none; color:var(--forest); font-size:0.72rem; cursor:pointer; padding:0; text-decoration:underline;">비번변경</button>
           <button type="button" onclick="logout()" style="background:none; border:none; color:var(--muted); font-size:0.72rem; cursor:pointer; padding:0; text-decoration:underline;">로그아웃</button>
           <button type="button" onclick="openWithdrawModal()" style="background:none; border:none; color:var(--muted); font-size:0.72rem; cursor:pointer; padding:0; text-decoration:underline;">탈퇴</button>
@@ -3098,6 +3100,8 @@
   const authModal = document.getElementById("auth-modal");
   window.openAuthModal = function(signup = false) {
     isSignupMode = signup;
+    document.getElementById("forgot-password-btn").hidden = signup;
+    document.getElementById("auth-identity-label").textContent = signup ? "닉네임" : "닉네임 또는 연결한 이메일";
     document.getElementById("auth-modal-title").innerText = signup ? "회원가입" : "로그인";
     document.getElementById("auth-submit-btn").innerText = signup ? "가입하기" : "로그인";
     document.getElementById("toggle-auth-mode-btn").innerText = signup ? "이미 계정이 있으신가요? 로그인하기" : "계정이 없으신가요? 간편 가입하기";
@@ -3129,7 +3133,7 @@
       errorMsg.style.display = "block";
     };
 
-    const email = nicknameToEmail(username);
+    const email = !isSignupMode && username.includes("@") ? username : nicknameToEmail(username);
     if (!email) {
       showError("닉네임은 한글 10자(영문 30자) 이내로 입력해 주세요.");
       return;
@@ -3230,7 +3234,7 @@
           showError("로그인 시도가 너무 많습니다. 잠시 후 다시 시도해 주세요.");
         } else {
           // 존재하지 않는 계정과 틀린 비밀번호를 구분해 알려주지 않습니다.
-          showError("닉네임 또는 비밀번호가 일치하지 않습니다.");
+          showError("닉네임·이메일 또는 비밀번호가 일치하지 않습니다. 이메일 연결을 완료한 회원은 이메일로 로그인해 주세요.");
         }
       }
     }
@@ -5500,5 +5504,6 @@
 </script>
 
 <script src="report-comments.js"></script>
+<script src="auth-recovery.js"></script>
 </body>
 </html>
