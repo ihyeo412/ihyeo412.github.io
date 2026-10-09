@@ -29,6 +29,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+<link rel="stylesheet" href="report-comments.css">
 
 <style>
   /* ── Reset ─────────────────────────────────────────────────────────── */
@@ -2893,6 +2894,7 @@
         reportsState.push({ id: doc.id, ...doc.data() });
       });
       renderReports();
+      if (window.validateReportComments) window.validateReportComments();
     }, onSyncError("산행 후기"));
 
     // 3. 가입 인사
@@ -2919,6 +2921,7 @@
       renderNewcomers();
       renderAuthNav();
       renderReports();
+      if (window.validateReportComments) window.validateReportComments();
     }, onSyncError("회원 명단"));
 
     // 5. 기타 정보
@@ -3461,6 +3464,7 @@
 
   /* ── View Navigation ───────────────────────────────────────────────── */
   window.showMainView = function() {
+    if (window.stopReportComments) window.stopReportComments();
     document.getElementById("main-view").style.display = "block";
     document.getElementById("hike-detail-view").style.display = "none";
     document.getElementById("reports-board-view").style.display = "none";
@@ -4654,6 +4658,7 @@
     document.getElementById("hike-detail-view").style.display = "none";
     document.getElementById("reports-board-view").style.display = "none";
     document.getElementById("report-detail-view").style.display = "block";
+    if (window.mountReportComments) window.mountReportComments(rep);
     document.getElementById("intro-board-view").style.display = "none";
     document.getElementById("members-board-view").style.display = "none";
     document.getElementById("rules-detail-view").style.display = "none";
@@ -5482,5 +5487,6 @@
   });
 </script>
 
+<script src="report-comments.js"></script>
 </body>
 </html>

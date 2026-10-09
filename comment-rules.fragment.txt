@@ -1,0 +1,85 @@
+// MERGE INSIDE match /databases/{database}/documents IN THE EXISTING RULES.
+// This fragment is NOT a replacement ruleset. Audit all overlapping allow rules:
+// an existing allow-all wildcard would bypass these restrictions.
+// Existing users rules MUST prevent members changing their nickname or role.
+
+function commentProfile() {
+  return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+}
+function commentAdmin() {
+  return request.auth != null && commentProfile().role == 'admin';
+}
+function commentVerifiedMember(memberId) {
+  let member = get(/databases/$(database)/documents/members/$(memberId)).data;
+  return member.name == commentProfile().nickname && member.status == 'regular';
+}
+function commentRegular() {
+  let pointer = get(/databases/$(database)/documents/commentMemberships/$(request.auth.uid)).data;
+  return commentVerifiedMember(pointer.memberId);
+}
+function commentCanRead(reportId) {
+  let report = get(/databases/$(database)/documents/reports/$(reportId)).data;
+  return request.auth != null &&
+    (report.get('visibility', 'regular') == 'all' || commentAdmin() || commentRegular());
+}
+function commentValid(data) {
+  return data.keys().hasAll(['authorUid', 'authorName', 'body', 'createdAt', 'updatedAt', 'hidden', 'deleted']) &&
+    data.keys().hasOnly(['authorUid', 'authorName', 'body', 'createdAt', 'updatedAt', 'hidden', 'deleted']) &&
+    data.authorUid is string && data.authorName is string &&
+    data.body is string && data.body.size() <= 2000 &&
+    data.createdAt is timestamp && data.updatedAt == request.time &&
+    data.hidden is bool && data.deleted is bool &&
+    ((data.deleted && data.body == '') || (!data.deleted && !data.body.matches('\\s*')));
+}
+function commentThrottledWrite(reportId, commentId) {
+  let path = /databases/$(database)/documents/commentRateLimits/$(request.auth.uid);
+  let after = getAfter(path).data;
+  return (!exists(path) || get(path).data.lastWriteAt + duration.value(60, 's') <= request.time) &&
+    after.lastWriteAt == request.time && after.reportId == reportId && after.commentId == commentId;
+}
+
+match /commentMemberships/{uid} {
+  allow read: if request.auth != null && request.auth.uid == uid;
+  allow create, update: if request.auth != null && request.auth.uid == uid &&
+    request.resource.data.keys().hasOnly(['memberId']) &&
+    request.resource.data.memberId is string &&
+    commentVerifiedMember(request.resource.data.memberId);
+  allow delete: if false;
+}
+match /commentRateLimits/{uid} {
+  allow read: if request.auth != null && request.auth.uid == uid;
+  allow create, update: if request.auth != null && request.auth.uid == uid &&
+    request.resource.data.keys().hasAll(['lastWriteAt', 'reportId', 'commentId']) &&
+    request.resource.data.keys().hasOnly(['lastWriteAt', 'reportId', 'commentId']) &&
+    request.resource.data.reportId is string && request.resource.data.commentId is string &&
+    request.resource.data.lastWriteAt == request.time &&
+    (!exists(/databases/$(database)/documents/commentRateLimits/$(uid)) ||
+      resource.data.lastWriteAt + duration.value(60, 's') <= request.time) &&
+    getAfter(/databases/$(database)/documents/reports/$(request.resource.data.reportId)/comments/$(request.resource.data.commentId)).data.authorUid == uid &&
+    getAfter(/databases/$(database)/documents/reports/$(request.resource.data.reportId)/comments/$(request.resource.data.commentId)).data.updatedAt == request.time;
+  allow delete: if false;
+}
+match /reports/{reportId}/comments/{commentId} {
+  allow read: if commentCanRead(reportId);
+  allow create: if commentCanRead(reportId) && commentValid(request.resource.data) &&
+    request.resource.data.authorUid == request.auth.uid &&
+    request.resource.data.authorName == commentProfile().nickname &&
+    request.resource.data.createdAt == request.time &&
+    request.resource.data.hidden == false && request.resource.data.deleted == false &&
+    commentThrottledWrite(reportId, commentId);
+  allow update: if commentCanRead(reportId) && commentValid(request.resource.data) &&
+    request.resource.data.authorUid == resource.data.authorUid &&
+    request.resource.data.authorName == resource.data.authorName &&
+    request.resource.data.createdAt == resource.data.createdAt &&
+    resource.data.deleted == false &&
+    (
+      (commentAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['hidden', 'updatedAt'])) ||
+      ((resource.data.authorUid == request.auth.uid || commentAdmin()) &&
+        request.resource.data.deleted == true && request.resource.data.body == '' &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['body', 'deleted', 'updatedAt'])) ||
+      (resource.data.authorUid == request.auth.uid && resource.data.hidden == false &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['body', 'updatedAt']) &&
+        commentThrottledWrite(reportId, commentId))
+    );
+  allow delete: if false;
+}
