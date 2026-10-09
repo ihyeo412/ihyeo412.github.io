@@ -65,6 +65,17 @@ function edit(db,uid,id,text) {const batch=writeBatch(db);batch.update(doc(db,'r
  await seed('reports/public/comments/hidden',{...body('member'),createdAt:Timestamp.now(),updatedAt:Timestamp.now(),hidden:true});
  await check('hidden comment reaction denied',()=>assertFails(setDoc(reactionRef(member,'member','public','hidden'),reaction(['❤️']))));
  await check('hidden comment reactions read denied',()=>assertFails(getDocs(collection(member,'reports/public/comments/hidden/reactions'))));
+ const reportReaction = (database,uid='member',report='public') => doc(database,`reports/${report}/reactions/${uid}`);
+ await check('report reaction without comments accepted',()=>assertSucceeds(setDoc(reportReaction(member),reaction(['❤️']))));
+ await check('report reaction counts readable',()=>assertSucceeds(getDocs(collection(other,'reports/public/reactions'))));
+ await check('report reaction cancel accepted',()=>assertSucceeds(setDoc(reportReaction(member),reaction([]))));
+ await check('report reaction impersonation denied',()=>assertFails(setDoc(reportReaction(other),reaction(['❤️']))));
+ await check('anonymous report reactions denied',()=>assertFails(getDocs(collection(anon,'reports/public/reactions'))));
+ await check('private report reactions denied to new member',()=>assertFails(setDoc(reportReaction(member,'member','private'),reaction(['❤️']))));
+ await check('private report reaction regular accepted',()=>assertSucceeds(setDoc(reportReaction(regular,'regular','private'),reaction(['👍']))));
+ await check('report duplicate reactions denied',()=>assertFails(setDoc(reportReaction(member),reaction(['❤️','❤️']))));
+ await check('report forged count denied',()=>assertFails(setDoc(reportReaction(member),reaction(['❤️'],{count:50}))));
+ await check('missing report reactions denied',()=>assertFails(setDoc(reportReaction(member,'member','missing'),reaction(['❤️']))));
  await check('own delete allowed',()=>assertSucceeds(updateDoc(doc(member,'reports/public/comments/first'),{deleted:true,body:'',updatedAt:serverTimestamp()})));
  await check('deleted comment reaction denied',()=>assertFails(setDoc(reactionRef(member),reaction(['❤️']))));
  await check('deleted resurrection denied',()=>assertFails(updateDoc(doc(member,'reports/public/comments/first'),{deleted:false,body:'복원',updatedAt:serverTimestamp()})));
