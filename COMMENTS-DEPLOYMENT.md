@@ -13,11 +13,11 @@
 
 ## 적용 순서 — 반드시 기존 규칙 확인 후 진행
 
-1. Firebase `ihiker-app` 프로젝트의 현재 Firestore 규칙을 백업합니다. 현재 저장소에 기존 규칙이 없어 이 단계는 아직 완료되지 않았습니다.
+1. Firebase `ihiker-app` 프로젝트의 현재 Firestore 규칙을 백업합니다. 활성 규칙(2026-09-08 버전)을 콘솔에서 확보해 별도 백업했습니다. firestore.rules는 이 규칙에 댓글 규칙을 병합한 배포안입니다.
 2. `comment-rules.fragment.txt` 내용을 기존 `match /databases/{database}/documents` 내부에 합칩니다. 이 파일만으로 전체 규칙을 교체하면 기존 사이트가 작동하지 않습니다.
 3. 중첩되는 광범위한 `allow write/read: if true` 및 재귀 wildcard를 점검합니다. 허용 규칙은 OR로 평가되므로 이러한 규칙이 있으면 댓글 제한이 우회됩니다.
 4. 기존 `users` 규칙에서 본인의 nickname·role 임의 변경 및 관리자 사칭이 불가능하고, `members`의 name·status·ownerUid 변경 권한이 안전한지 확인합니다. 댓글 권한은 이 회원 데이터의 무결성에 의존합니다.
-5. Firebase Emulator Suite에서 아래 권한 검증을 마친 뒤 규칙을 배포합니다. 현재 환경에 Java 런타임과 Firebase 테스트 도구가 없어 규칙 컴파일·에뮬레이터 검증은 수행하지 못했습니다.
+5. Firebase Emulator Suite에서 아래 권한 검증을 마친 뒤 규칙을 배포합니다. 별도 작업 폴더의 Java 21 및 Firebase Emulator에서 31개 권한 검증을 모두 통과했습니다. 재현: Node.js와 Java 21 설치 후 pnpm install 및 pnpm test:rules. 테스트는 demo 프로젝트만 사용합니다.
 6. 규칙 검증이 통과한 뒤 GitHub Pages의 배포 브랜치에 `index.html`, `report-comments.js`, `report-comments.css` 변경을 반영합니다.
 7. 승인된 테스트 회원으로 실제 등록·수정·조회·관리 동작을 점검합니다. 운영 테스트 댓글 생성·삭제는 운영자와 합의한 후기에서 진행합니다.
 
@@ -35,10 +35,14 @@
 
 ## 확인한 테스트
 
-운영 데이터에 연결하지 않은 브라우저 테스트에서 댓글 등록·실시간 표시, 여러 줄 본문 및 HTML 문자열의 안전한 텍스트 표시, 연속 등록 차단, 관리자 숨김을 확인했습니다. 이는 UI 동작 검증이며 실제 Firestore 권한 검증을 대신하지 않습니다.
+운영 데이터에 연결하지 않은 브라우저 테스트에서 댓글 등록·실시간 표시, 여러 줄 본문 및 HTML 문자열의 안전한 텍스트 표시, 연속 등록 차단, 관리자 숨김을 확인했습니다. 본인 댓글 수정 및 관리자 복원도 확인했습니다. 병합 규칙은 실제 Firestore 에뮬레이터에서 31개 허용·거부 시나리오를 통과했습니다. 운영 배포 및 운영 데이터 쓰기 검증은 아직 수행하지 않았습니다.
 
 ## 되돌리기
 
 GitHub 변경을 되돌리면 댓글 UI가 사라집니다. 기존 후기·회원 문서를 변경하지 않습니다. 새 댓글 컬렉션은 그대로 보존하고 규칙의 쓰기를 차단한 뒤 별도 정책에 따라 관리합니다. 기존 운영 규칙 백업은 규칙 변경 전 반드시 확보합니다.
 
 참고: https://firebase.google.com/docs/firestore/security/rules-conditions 및 https://firebase.google.com/docs/firestore/manage-data/transactions
+
+## 기존 회원 규칙 보강
+
+댓글 권한 사칭 방지를 위해 일반 회원의 users.nickname 및 members.name·ownerUid 변경을 차단합니다. 관리자 수정은 허용합니다. 기존 회원 status 변경 제한을 유지합니다. 기존 시드 회원 기록의 ownerUid는 최초 관리자일 수 있어, 댓글 회원 포인터는 변경 불가능한 프로필 닉네임과 현재 회원 이름·등급으로 검증합니다.

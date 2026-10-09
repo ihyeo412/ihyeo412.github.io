@@ -1,0 +1,12 @@
+{
+  "name": "ihiker-comments-security-tests",
+  "private": true,
+  "scripts": {
+    "test:rules": "firebase emulators:exec --only firestore --project demo-ihiker-comments \"node report-comments.rules.test.cjs\""
+  },
+  "devDependencies": {
+    "firebase-tools": "15.33.0",
+    "@firebase/rules-unit-testing": "6.0.0",
+    "firebase": "13.0.0"
+  }
+}
