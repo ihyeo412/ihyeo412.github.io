@@ -83,3 +83,21 @@ match /reports/{reportId}/comments/{commentId} {
     );
   allow delete: if false;
 }
+
+// Each member owns one reaction document per comment; counts are derived from
+// these documents, so clients cannot forge aggregate counters or another user.
+match /reports/{reportId}/comments/{commentId}/reactions/{uid} {
+  function visibleComment() {
+    let comment = get(/databases/$(database)/documents/reports/$(reportId)/comments/$(commentId)).data;
+    return comment.hidden == false && comment.deleted == false;
+  }
+  allow read: if commentCanRead(reportId) && visibleComment();
+  allow create, update: if commentCanRead(reportId) && visibleComment() && request.auth.uid == uid &&
+    request.resource.data.keys().hasAll(['emojis', 'updatedAt']) &&
+    request.resource.data.keys().hasOnly(['emojis', 'updatedAt']) &&
+    request.resource.data.emojis is list && request.resource.data.emojis.size() <= 6 &&
+    request.resource.data.emojis.toSet().size() == request.resource.data.emojis.size() &&
+    request.resource.data.emojis.hasOnly(['❤️', '👍', '😊', '👏', '🎉', '⛰️']) &&
+    request.resource.data.updatedAt == request.time;
+  allow delete: if false;
+}
