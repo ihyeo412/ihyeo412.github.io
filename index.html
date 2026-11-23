@@ -2781,11 +2781,21 @@
     (Array.isArray(list) ? list : []).reduce((sum, u) => sum + String(u).length, 0);
 
   function parseHikeDate(dateStr) {
-    if (!dateStr) return 0;
-    const match = String(dateStr).trim().match(/^(?:(\d{4})[./-])?(\d{1,2})[./-](\d{1,2})/);
-    if (!match) return 0;
-    const year = parseInt(match[1] || new Date().getFullYear(), 10);
-    return year * 10000 + parseInt(match[2], 10) * 100 + parseInt(match[3], 10);
+    const text = String(dateStr || "").trim();
+    let match = text.match(/^(\d{4})\s*[./-]\s*(\d{1,2})\s*[./,\-]\s*(\d{1,2})(?=$|[^\d])/);
+    let year, month, day;
+    if (match) [, year, month, day] = match;
+    else {
+      match = text.match(/^(\d{1,2})\s*[./-]\s*(\d{1,2})(?:\s*[./-]\s*(\d{4}|\d{2}))?(?=$|[^\d])/);
+      if (!match) return 0;
+      [, month, day, year] = match;
+      year = year || new Date().getFullYear();
+      if (String(year).length === 2) year = 2000 + Number(year);
+    }
+    year = Number(year); month = Number(month); day = Number(day);
+    const check = new Date(year, month - 1, day);
+    if (check.getFullYear() !== year || check.getMonth() + 1 !== month || check.getDate() !== day) return 0;
+    return year * 10000 + month * 100 + day;
   }
 
   function hikeListSortValue(dateStr) {
@@ -2793,8 +2803,8 @@
     if (!value) return Number.MAX_SAFE_INTEGER;
     const now = new Date();
     const today = now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
-    // 예정 산행을 먼저 날짜순으로, 이미 지난 산행은 그 아래로 보냅니다.
-    return value >= today ? value : value + 100000000;
+    // Upcoming: nearest first. Past: most recent first. Invalid dates: last.
+    return value >= today ? value : 100000000 - value;
   }
 
   // Compare departure times as well as dates; missing times follow known times.
