@@ -2797,6 +2797,55 @@
     return value >= today ? value : value + 100000000;
   }
 
+  // Compare departure times as well as dates; missing times follow known times.
+  function hikeTimeMinutes(value) {
+    const text = String(value || "").trim();
+    const match = text.match(/(\d{1,2})\s*[:시]\s*(\d{1,2})?/);
+    if (!match) return 1440;
+    let hour = Number(match[1]);
+    const minute = Number(match[2] || 0);
+    if (hour > 23 || minute > 59) return 1440;
+    if (/오후|pm/i.test(text) && hour < 12) hour += 12;
+    if (/오전|am/i.test(text) && hour === 12) hour = 0;
+    return hour * 60 + minute;
+  }
+
+  function compareHikes(a, b) {
+    return hikeListSortValue(a.date) - hikeListSortValue(b.date)
+      || hikeTimeMinutes(a.time) - hikeTimeMinutes(b.time)
+      || String(a.id || "").localeCompare(String(b.id || ""));
+  }
+
+  // Escape all user text; only HTTP(S) URLs become links. Embed YouTube only.
+  function renderCommentContent(value) {
+    const text = String(value ?? "");
+    const videos = new Set();
+    let result = "";
+    let cursor = 0;
+    const pattern = /https?:\/\/[^\s<>"']+/gi;
+    for (const match of text.matchAll(pattern)) {
+      const raw = match[0].replace(/[.,!?;:，。！？，）)\]}]+$/, "");
+      result += escapeHtml(text.slice(cursor, match.index));
+      try {
+        const url = new URL(raw);
+        if (!['http:', 'https:'].includes(url.protocol)) throw new Error('scheme');
+        result += `<a href="${escapeHtml(url.href)}" target="_blank" rel="noopener noreferrer ugc">${escapeHtml(raw)}</a>`;
+        let id = null;
+        if (url.hostname === 'youtu.be') id = url.pathname.slice(1);
+        if (['youtube.com', 'www.youtube.com', 'm.youtube.com'].includes(url.hostname)) {
+          id = url.pathname === '/watch' ? url.searchParams.get('v') : url.pathname.match(/^\/(?:shorts|embed)\/([^/]+)$/)?.[1];
+        }
+        if (/^[A-Za-z0-9_-]{11}$/.test(id || '')) videos.add(id);
+      } catch { result += escapeHtml(raw); }
+      cursor = match.index + raw.length;
+    }
+    result += escapeHtml(text.slice(cursor));
+    for (const id of [...videos].slice(0, 3)) {
+      result += `<iframe class="comment-video" src="https://www.youtube-nocookie.com/embed/${id}" title="댓글 YouTube 영상" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
+    }
+    return result;
+  }
+
   function formatHikeDate(dateStr) {
     const value = String(dateStr || "").trim();
     const match = value.match(/^(?:(\d{4})[./-])?(\d{1,2})[./-](\d{1,2})$/);
@@ -2878,7 +2927,7 @@
       snapshot.forEach(doc => {
         hikesState.push({ id: doc.id, ...doc.data() });
       });
-      hikesState.sort((a, b) => hikeListSortValue(a.date) - hikeListSortValue(b.date));
+      hikesState.sort(compareHikes);
       renderHikes();
       if (window.currentDetailHikeId) {
         // 상세 보기 중인 산행이 삭제되었다면 목록으로 되돌립니다.
@@ -3964,7 +4013,7 @@
             <div style="font-size:0.84rem; color:#c3ccbf;">아직 환영 인사가 없습니다. 환영의 한마디를 남겨주세요!</div>
           ` : item.welcomes.map(w => `
             <div class="welcome-item">
-              <span><b class="welcome-author">${escapeHtml(w.username)}</b>: ${escapeHtml(w.msg)}</span>
+              <span><b class="welcome-author">${escapeHtml(w.username)}</b>: ${renderCommentContent(w.msg)}</span>
               ${(currentUser && (currentUser === w.username || isAdmin())) ? `
                 <button class="action-btn delete" onclick="deleteWelcome('${item.id}', ${w.id})" title="환영인사 삭제">×</button>
               ` : ''}
@@ -4562,7 +4611,7 @@
                   </div>
                 </form>
               ` : `
-                <div class="rsvp-msg">${escapeHtml(r.msg)}</div>
+                <div class="rsvp-msg">${renderCommentContent(r.msg)}</div>
               `}
             </div>
           `;
@@ -4770,8 +4819,10 @@
   function renderHikes() {
     const currentUser = getCurrentUser();
 
+    const orderedHikes = [...hikesState].sort(compareHikes);
+
     // 1. 주말 정기 산행
-    const regularHikes = hikesState.filter(h => h.tag !== '특별');
+    const regularHikes = orderedHikes.filter(h => h.tag !== '특별');
     const regularContainer = document.getElementById("regular-hike-list");
     const totalRegularPages = Math.ceil(regularHikes.length / ITEMS_PER_PAGE) || 1;
     if (currentRegularPage > totalRegularPages) currentRegularPage = totalRegularPages;
@@ -4787,7 +4838,7 @@
     renderPagination(regularHikes.length, currentRegularPage, "regular-pagination", "changeRegularPage");
 
     // 2. 특별 / 백팩킹 산행
-    const specialHikes = hikesState.filter(h => h.tag === '특별');
+    const specialHikes = orderedHikes.filter(h => h.tag === '특별');
     const specialContainer = document.getElementById("special-hike-list");
     const totalSpecialPages = Math.ceil(specialHikes.length / ITEMS_PER_PAGE) || 1;
     if (currentSpecialPage > totalSpecialPages) currentSpecialPage = totalSpecialPages;

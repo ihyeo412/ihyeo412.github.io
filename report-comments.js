@@ -199,7 +199,9 @@
         article.append(meta);
         const body = document.createElement('p');
         body.className = 'comment-body';
-        body.textContent = row.deleted ? '삭제된 댓글입니다.' : row.hidden ? '관리자가 숨긴 댓글입니다.' : row.body;
+        if (row.deleted || row.hidden) {
+          body.textContent = row.deleted ? '삭제된 댓글입니다.' : '관리자가 숨긴 댓글입니다.';
+        } else body.innerHTML = renderCommentContent(row.body);
         article.append(body);
         const actions = document.createElement('div');
         actions.className = 'comment-actions';

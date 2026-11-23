@@ -17,3 +17,7 @@
 .reaction-button:disabled { opacity: .5; cursor: wait; }
 .reaction-picker { display: flex; flex-wrap: wrap; gap: .35rem; border: 1px solid var(--hairline); border-radius: 12px; padding: .4rem; }
 .reaction-picker[hidden] { display: none; }
+
+/* Keep pasted links and embedded videos inside the comment column. */
+.comment-body, .rsvp-msg, .welcome-list { overflow-wrap: anywhere; }
+.comment-video { display: block; width: 100%; max-width: 640px; aspect-ratio: 16 / 9; border: 0; margin-top: 0.75rem; }
