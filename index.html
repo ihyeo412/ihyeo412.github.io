@@ -2439,6 +2439,12 @@
     firebase.initializeApp(firebaseConfig);
   }
   const db = firebase.firestore();
+  // Avoid stalled streaming connections on restrictive networks/proxies.
+  db.settings({ experimentalForceLongPolling: true });
+  // Cached snapshots can render immediately on later visits, even offline.
+  const firestoreCacheReady = db.enablePersistence({ synchronizeTabs: true }).catch(err => {
+    console.warn("브라우저 캐시를 사용할 수 없어 기본 연결을 사용합니다:", err.code);
+  });
   const auth = firebase.auth();
 
   /* ── Default Seed Data ─────────────────────────────────────────────── */
@@ -2675,7 +2681,8 @@
       renderReports();
     });
   }
-  window.retryReports = subscribeReports;
+  // A user-requested refresh must reset the page, not restart a slow query.
+  window.retryReports = () => window.location.reload();
   const REPORTS_PER_PAGE = 8;
   let currentReportPage = 1;
   let currentHomeReportPage = 1;
@@ -4938,9 +4945,9 @@
       : reportsLoadState === "slow"
         ? "사진이 포함된 후기를 불러오는 데 시간이 걸리고 있습니다."
         : "산행 후기를 불러오는 중입니다…";
-    const retry = '<button type="button" class="btn btn-ghost btn-sm" onclick="retryReports()">다시 불러오기</button>';
+    const retry = '<button type="button" class="btn btn-ghost btn-sm" onclick="retryReports()">페이지 새로고침</button>';
     if (!reportsState.length && reportsLoadState !== "ready") {
-      container.innerHTML = `<div role="status">${status} ${reportsLoadState === "loading" ? "" : retry}</div>`;
+      container.innerHTML = `<div role="status">${status} ${retry}</div>`;
       return;
     }
 
@@ -5625,8 +5632,9 @@
   });
 
   /* ── App Initialization ────────────────────────────────────────────── */
-  document.addEventListener("DOMContentLoaded", () => {
+  document.addEventListener("DOMContentLoaded", async () => {
     renderAuthNav();
+    await firestoreCacheReady;
     initFirestoreSync();
     // Refresh expiring badges even if no database update arrives.
     setInterval(() => {
