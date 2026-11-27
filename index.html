@@ -190,7 +190,7 @@
     border: 1px solid var(--hairline);
   }
 
-  .hero { padding-block: clamp(2.6rem, 8vw, 4.6rem); }
+  .hero { padding-top: clamp(2.6rem, 8vw, 4.6rem); padding-bottom: clamp(0.8rem, 2vw, 1.2rem); }
   .hero-layout {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
@@ -1719,7 +1719,7 @@
   .alert-row-link { display: block; margin: 0.3rem 0; overflow-wrap: anywhere; }
   .alert-row-actions { display: flex; gap: 0.4rem; margin: 0.5rem 0; }
   @media (max-width: 600px) { .alert-row-line { gap: 0.5rem; font-size: 0.78rem; } }
-  #notices { height: auto; min-height: 0; padding: 0.5rem 0.8rem; }
+  #notices { height: auto; min-height: 0; margin-top: 0.6rem; padding: 0.5rem 0.8rem; }
   #notices .notices-head { margin-bottom: 0.35rem; gap: 0.5rem; }
   #notices .notices-head h3 { font-size: 0.92rem; }
   #notices .head-actions .btn { font-size: 0.72rem; padding: 0.3rem 0.55rem; }
@@ -2922,13 +2922,10 @@
   }
 
   function formatHikeDate(dateStr) {
-    const value = String(dateStr || "").trim();
-    const match = value.match(/^(?:(\d{4})[./-])?(\d{1,2})[./-](\d{1,2})$/);
-    if (!match) return value || "-";
-    const year = match[1] || new Date().getFullYear();
-    const month = match[2].padStart(2, "0");
-    const day = match[3].padStart(2, "0");
-    return `${year}/${month}/${day}`;
+    const value = parseHikeDate(dateStr);
+    if (!value) return String(dateStr || "").trim() || "-";
+    const digits = String(value);
+    return `${digits.slice(4, 6)}:${digits.slice(6, 8)}:${digits.slice(2, 4)}`;
   }
 
   /* ── One-Time Seeding ──────────────────────────────────────────────────
@@ -5148,7 +5145,9 @@
     document.getElementById("hike-modal-title").innerText = "산행 일정 수정";
     document.getElementById("hike-submit-btn").innerText = "수정 완료";
 
-    const editableDate = formatHikeDate(hike.date);
+    const dateKey = parseHikeDate(hike.date);
+    const digits = String(dateKey);
+    const editableDate = dateKey ? `${digits.slice(0, 4)}/${digits.slice(4, 6)}/${digits.slice(6, 8)}` : String(hike.date || "");
     document.getElementById("hike-date").value = hike.day ? `${editableDate}(${hike.day})` : editableDate;
     document.getElementById("hike-time").value = hike.time || "";
     document.getElementById("hike-type").value = hike.tag || "정기";
