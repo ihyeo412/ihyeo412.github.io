@@ -1732,9 +1732,9 @@
   .alert-row-update[hidden] { display: none; }
   .alert-row-date { flex-shrink: 0; color: var(--muted); font-size: 0.68rem; white-space: nowrap; }
   @media (max-width: 600px) {
-    .alert-row-line { flex-wrap: wrap; column-gap: 0.4rem; row-gap: 0; }
-    .alert-row-title { flex-basis: 65%; }
-    .alert-row-date { flex-basis: 100%; text-align: right; font-size: 0.63rem; padding-bottom: 0.1rem; }
+    .alert-row-line { flex-wrap: nowrap; column-gap: 0.4rem; }
+    .alert-row-title { flex-basis: auto; }
+    .alert-row-date { font-size: 0.63rem; }
   }
 </style>
 </head>
@@ -1792,13 +1792,7 @@
       </div>
     </section>
 
-    <section class="newcomers" id="recent-intros" hidden aria-labelledby="recent-intros-title">
-      <div class="newcomers-head">
-        <h3 id="recent-intros-title">새로 가입 인사를 남긴 분들</h3>
-        <button type="button" class="btn btn-ghost btn-sm" onclick="openIntroBoardView()">가입 인사 전체 보기 ↗</button>
-      </div>
-      <div class="newcomer-chips" id="recent-intro-chips"></div>
-    </section>
+
 
       <!-- ── 새로 가입한 회원 ───────────────────────────────────────── -->
       <div class="newcomers" id="newcomers" hidden>
@@ -1808,6 +1802,14 @@
         </div>
         <div class="newcomer-chips" id="newcomer-chips"></div>
       </div>
+
+    <section class="newcomers" id="promoted-members" hidden aria-labelledby="promoted-members-title">
+      <div class="newcomers-head">
+        <h3 id="promoted-members-title">등업 회원 <span id="promoted-member-count"></span></h3>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="openMembersBoardView('regular')">정회원 전체 보기 ↗</button>
+      </div>
+      <div class="newcomer-chips" id="promoted-member-chips"></div>
+    </section>
 
     <!-- ── Schedule Section ────────────────────────────────────────── -->
     <section class="section" id="schedule">
@@ -3022,7 +3024,6 @@
         introsState.push({ id: doc.id, ...doc.data() });
       });
       introsState.sort((a, b) => String(b.createdAt || b.date || "").localeCompare(String(a.createdAt || a.date || "")));
-      renderRecentIntros();
       if (document.getElementById("intro-board-view").style.display === "block") {
         renderIntros();
       }
@@ -3799,11 +3800,15 @@
   }
   function alertWrittenTime(item) {
     const time = alertTimestamp(item.createdAt);
-    if (!time) return alertLegacyDate(item) || "작성 시간 미기록";
-    return new Intl.DateTimeFormat("ko-KR", {
-      timeZone: "America/Los_Angeles", year: "numeric", month: "2-digit", day: "2-digit",
-      hour: "2-digit", minute: "2-digit", hourCycle: "h23"
-    }).format(new Date(time));
+    if (!time) {
+      const legacy = alertLegacyDate(item);
+      return legacy ? `${legacy.slice(5, 7)}:${legacy.slice(8, 10)}:${legacy.slice(2, 4)}` : "—";
+    }
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Los_Angeles", year: "2-digit", month: "2-digit", day: "2-digit"
+    }).formatToParts(new Date(time));
+    const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+    return `${values.month}:${values.day}:${values.year}`;
   }
 
   const expandedAlertRows = new Set();
@@ -3840,6 +3845,7 @@
       const remove = item.source === "notices" ? "deleteNotice" : "deleteInfo";
       return `<li class="alert-row-item">
         <div class="alert-row-line">
+          <span class="alert-row-date" title="작성 날짜 · MM:DD:YY · 미국 태평양 시간 기준">${escapeHtml(alertWrittenTime(item))}</span>
           <button type="button" class="alert-row-title" onclick="toggleAlertRow('${item.source}', '${item.id}')"
                   aria-expanded="${open}" aria-controls="alert-row-body-${item.source}-${item.id}">
             <span class="alert-row-text">${escapeHtml(item.title || "제목 없음")}</span>
@@ -3848,7 +3854,6 @@
             ${attached ? '<span class="alert-row-attachment" role="img" aria-label="첨부 링크 또는 사진">📎</span>' : ''}
           </button>
           <span class="alert-row-author">${escapeHtml(author)}</span>
-          <span class="alert-row-date" title="작성 시간 · 미국 태평양 시간 기준">${escapeHtml(alertWrittenTime(item))}</span>
         </div>
         <div class="alert-row-body" id="alert-row-body-${item.source}-${item.id}" ${open ? '' : 'hidden'}>
           <div class="alert-row-content">${renderCommentContent(item.content)}</div>
@@ -3955,26 +3960,8 @@
     }
   };
 
-  // 공개 가입 인사의 닉네임과 작성일만 홈에 표시합니다.
-  function renderRecentIntros() {
-    const box = document.getElementById("recent-intros");
-    const chips = document.getElementById("recent-intro-chips");
-    const recent = introsState.slice(0, 8);
-    box.hidden = recent.length === 0;
-    chips.innerHTML = recent.map(item => {
-      const when = String(item.createdAt || item.date || "").slice(0, 10);
-      const age = daysSince(when);
-      const fresh = age >= 0 && age <= 14;
-      return `<button type="button" class="btn btn-ghost newcomer-chip ${fresh ? 'fresh' : ''}" onclick="openIntroBoardView()">
-        <span>${escapeHtml(item.nickname || "새 회원")}</span>
-        ${fresh ? '<span class="new-flag">NEW</span>' : ''}
-        ${when ? `<span class="when">${escapeHtml(when)}</span>` : ''}
-      </button>`;
-    }).join("");
-  }
-
   /* ── 새로 가입한 회원 (메인 화면) ─────────────────────────────────── */
-  const NEWCOMER_LIMIT = 8;
+  const NEWCOMER_VISIBLE_DAYS = 30;
   const NEWCOMER_FRESH_DAYS = 14;   // NEW 배지를 붙이는 기간
 
   // 가입일은 toISOString() 으로 만든 UTC 날짜 문자열입니다.
@@ -3989,48 +3976,47 @@
     return Math.round((todayUTC - then) / 86400000);
   }
 
+  function recentNewMember(member, now = Date.now()) {
+    const joined = alertTimestamp(member.joinedAt || member.date);
+    return joined > 0 && joined <= now && now - joined < NEWCOMER_VISIBLE_DAYS * 86400000;
+  }
+
+  function promotedSignupMember(member) {
+    return member.status === "regular"
+      && (member.promotedFromNewcomer === true || !!member.joinedAt);
+  }
+
   function renderNewcomers() {
     const box = document.getElementById("newcomers");
     const chips = document.getElementById("newcomer-chips");
-    if (!box || !chips) return;
-
-    // 새 가입자 명단은 로그인한 정회원과 관리자에게만 보여 줍니다.
-    // 로그인 전이거나 신입 회원이면 목록과 이름을 화면에 남기지 않습니다.
+    const promotedBox = document.getElementById("promoted-members");
+    const promotedChips = document.getElementById("promoted-member-chips");
+    if (!box || !chips || !promotedBox || !promotedChips) return;
+    // Keep the existing member-name visibility policy.
     if (!isRegularMember(getCurrentUser())) {
-      box.hidden = true;
-      chips.innerHTML = "";
+      box.hidden = true; chips.innerHTML = "";
+      promotedBox.hidden = true; promotedChips.innerHTML = "";
       return;
     }
-
-    // 가입 후 등업을 기다리는 회원을 가입일 최신순으로 보여 줍니다.
-    // 가입 시각(joinedAt)이 있으면 그걸로, 없으면 날짜로 최신순 정렬합니다.
-    const joinKey = (m) => String(m.joinedAt || m.date || "");
-
     const pending = membersState
-      // 정회원으로 등업된 분은 더 이상 새 가입 회원 명단에 표시하지 않습니다.
-      .filter(m => isSignupAccount(m) && m.status !== "regular")
-      .sort((a, b) => joinKey(b).localeCompare(joinKey(a)));
-    const joined = pending.slice(0, NEWCOMER_LIMIT);
+      .filter(m => isSignupAccount(m) && m.status !== "regular" && recentNewMember(m))
+      .sort((a,b) => alertTimestamp(b.joinedAt || b.date) - alertTimestamp(a.joinedAt || a.date));
     document.getElementById("newcomer-count").textContent = `(${pending.length}명)`;
-
-    if (joined.length === 0) {
-      box.hidden = true;
-      chips.innerHTML = "";
-      return;
-    }
-
-    box.hidden = false;
-    chips.innerHTML = joined.map(m => {
-      const when = String(m.joinedAt || m.date || "").slice(0, 10);
-      const age = daysSince(when);
-      const fresh = age >= 0 && age <= NEWCOMER_FRESH_DAYS;
-      return `
-        <span class="newcomer-chip ${fresh ? 'fresh' : ''}">
-          <span>${escapeHtml(m.name)}</span>
-          ${fresh ? `<span class="new-flag">NEW</span>` : ''}
-          ${when ? `<span class="when">${escapeHtml(when)}</span>` : ''}
-        </span>
-      `;
+    box.hidden = pending.length === 0;
+    chips.innerHTML = pending.map(m => {
+      const when = String(m.joinedAt || m.date || "").slice(0,10);
+      return `<span class="newcomer-chip fresh"><span>${escapeHtml(m.name)}</span>
+        <span class="new-flag">NEW</span><span class="when">가입 ${escapeHtml(when)}</span></span>`;
+    }).join("");
+    const promoted = membersState.filter(promotedSignupMember)
+      .sort((a,b) => alertTimestamp(b.promotedAt) - alertTimestamp(a.promotedAt)
+        || String(a.name || "").localeCompare(String(b.name || ""), "ko"));
+    document.getElementById("promoted-member-count").textContent = `(${promoted.length}명)`;
+    promotedBox.hidden = promoted.length === 0;
+    promotedChips.innerHTML = promoted.map(m => {
+      const when = m.promotedAt ? String(m.promotedAt).slice(0,10) : "";
+      return `<span class="newcomer-chip"><span>${escapeHtml(m.name)}</span>
+        <span class="new-flag">정회원</span>${when ? `<span class="when">등업 ${escapeHtml(when)}</span>` : ''}</span>`;
     }).join("");
   }
 
@@ -4047,7 +4033,15 @@
     if (!confirm(`${m.name} 님을 ${label} 하시겠습니까?`)) return;
 
     try {
-      await db.collection("members").doc(id.toString()).update({ status: status });
+      const change = { status };
+      if (status === "regular" && m.status !== "regular") {
+        change.promotedAt = new Date().toISOString();
+        change.promotedFromNewcomer = true;
+      } else if (status !== "regular") {
+        change.promotedAt = firebase.firestore.FieldValue.delete();
+        change.promotedFromNewcomer = firebase.firestore.FieldValue.delete();
+      }
+      await db.collection("members").doc(id.toString()).update(change);
     } catch (err) {
       console.error("등급 변경 실패:", err);
       alert(`등급을 변경하지 못했습니다.\n(${err.code || err.message})`);
@@ -5647,7 +5641,7 @@
     renderAuthNav();
     await firestoreCacheReady;
     initFirestoreSync();
-    setInterval(refreshAlertUpdateBadges, 60000);
+    setInterval(() => { refreshAlertUpdateBadges(); renderNewcomers(); }, 60000);
   });
 </script>
 
