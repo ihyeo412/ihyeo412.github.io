@@ -1730,10 +1730,11 @@
   .alert-row-link { display: block; margin: 0.3rem 0; overflow-wrap: anywhere; }
   .alert-row-actions { display: flex; gap: 0.4rem; margin: 0.5rem 0; }
   @media (max-width: 600px) { .alert-row-line { gap: 0.5rem; font-size: 0.78rem; } }
-  #notices { height: auto; min-height: 0; padding: 0.75rem 1rem; }
+  #notices { height: auto; min-height: 0; padding: 0.5rem 0.8rem; }
   #notices .notices-head { margin-bottom: 0.35rem; gap: 0.5rem; }
   #notices .notices-head h3 { font-size: 0.92rem; }
   #notices .head-actions .btn { font-size: 0.72rem; padding: 0.3rem 0.55rem; }
+  #notices #info { display: none; padding: 0; margin: 0; }
   #notices #info-list { margin: 0; }
   #alert-pagination { margin: 0.4rem 0 0; gap: 0.3rem; }
   #alert-pagination[hidden] { display: none; }
@@ -1789,7 +1790,7 @@
       </div>
       <div class="notice-list" id="notice-list"></div>
       <nav class="pagination" id="alert-pagination" aria-label="알림글 페이지" hidden></nav>
-      <div id="info">
+      <div id="info" hidden>
         <span class="period" id="info-summary" hidden></span>
         <div class="cols" id="info-list">알림글을 불러오는 중입니다…</div>
       </div>
