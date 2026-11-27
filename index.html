@@ -1704,7 +1704,7 @@
   .alert-comments .comment-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
   #info-list { margin-top: 0.8rem; }
   .alert-row-list { list-style: none; margin: 0; padding: 0; }
-  .alert-row-line { display: flex; align-items: center; gap: 0.75rem; min-height: 1.7rem; font-size: 0.82rem; line-height: 1.4; }
+  .alert-row-line { display: flex; align-items: center; gap: 0.75rem; min-height: 1.7rem; font-size: 0.9rem; line-height: 1.4; }
   .alert-row-title { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.35rem;
     border: 0; background: none; padding: 0.2rem 0; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
   .alert-row-title:hover .alert-row-text { text-decoration: underline; }
@@ -1718,7 +1718,7 @@
   .alert-row-content { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.7; }
   .alert-row-link { display: block; margin: 0.3rem 0; overflow-wrap: anywhere; }
   .alert-row-actions { display: flex; gap: 0.4rem; margin: 0.5rem 0; }
-  @media (max-width: 600px) { .alert-row-line { gap: 0.5rem; font-size: 0.78rem; } }
+  @media (max-width: 600px) { .alert-row-line { gap: 0.5rem; font-size: 0.86rem; } }
   .alert-board {
     display: grid; grid-template-rows: 2rem 8.5rem 1.8rem; row-gap: 0.25rem;
     height: calc(13.8rem + 2px); min-height: 0; margin-top: 0; padding: 0.5rem 0.8rem;
@@ -1727,7 +1727,7 @@
   .alert-board .notice-list { display: block; height: 8.5rem; min-height: 0; overflow-y: auto; overflow-x: hidden; }
   .alert-board .alert-row-line { height: 1.7rem; min-height: 1.7rem; }
   .alert-board .notices-head h3 { white-space: nowrap; }
-  .alert-board .notices-head h3 { font-size: 0.95rem; font-weight: 600; letter-spacing: 0.02em; }
+  .alert-board .notices-head h3 { font-size: 1.05rem; font-weight: 600; letter-spacing: 0.02em; }
   .alert-board .notices-head .btn { font-size: 0.72rem; padding: 0.3rem 0.55rem; }
   #notices #info { display: none; padding: 0; margin: 0; }
   #notices #info-list { margin: 0; }
@@ -1736,11 +1736,11 @@
   .alert-board-pagination .page-btn { min-width: 1.6rem; height: 1.6rem; font-size: 0.75rem; padding: 0.15rem 0.35rem; }
   .alert-row-update { flex-shrink: 0; font-size: 0.65rem; font-weight: 700; }
   .alert-row-update[hidden] { display: none; }
-  .alert-row-date { flex-shrink: 0; color: var(--muted); font-size: 0.68rem; white-space: nowrap; }
+  .alert-row-date { flex-shrink: 0; color: var(--muted); font-size: 0.72rem; white-space: nowrap; }
   @media (max-width: 600px) {
     .alert-row-line { flex-wrap: nowrap; column-gap: 0.4rem; }
     .alert-row-title { flex-basis: auto; }
-    .alert-row-date { font-size: 0.63rem; }
+    .alert-row-date { font-size: 0.68rem; }
   }
   .alert-boards { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; margin-top: 0.6rem; align-items: start; }
   .alert-board { min-width: 0; }
@@ -1748,6 +1748,10 @@
   @media (max-width: 760px) { .alert-boards { grid-template-columns: minmax(0, 1fr); gap: 0.7rem; } }
   .alert-detail-meta { font-size: 0.8rem; color: var(--muted); margin-top: 0.6rem; }
   #alert-detail-view .alert-row-body { padding-top: 0; }
+  .password-view-field { display: flex; align-items: stretch; gap: 0.45rem; min-width: 0; }
+  .password-view-field input { flex: 1; min-width: 0; width: 100%; }
+  .password-view-button { flex-shrink: 0; min-width: 4rem; padding: 0.5rem 0.65rem; border: 1px solid var(--hairline); border-radius: var(--radius); background: var(--surface); color: var(--ink); font: inherit; font-size: 0.8rem; cursor: pointer; }
+  .password-view-button:focus-visible { outline: 2px solid var(--forest); outline-offset: 2px; }
 </style>
 </head>
 <body>
@@ -5756,8 +5760,42 @@
     }
   });
 
+  function installPasswordViewButtons() {
+    document.querySelectorAll('input[type="password"]').forEach(input => {
+      if (input.dataset.viewButtonReady) return;
+      input.dataset.viewButtonReady = "true";
+      const wrap = document.createElement("span");
+      wrap.className = "password-view-field";
+      input.parentNode.insertBefore(wrap, input);
+      wrap.append(input);
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "password-view-button";
+      button.setAttribute("aria-controls", input.id);
+      const hide = () => {
+        input.type = "password";
+        button.textContent = "보기";
+        button.setAttribute("aria-label", "비밀번호 보기");
+        button.setAttribute("aria-pressed", "false");
+      };
+      button.addEventListener("click", event => {
+        event.preventDefault();
+        const show = input.type === "password";
+        input.type = show ? "text" : "password";
+        button.textContent = show ? "숨기기" : "보기";
+        button.setAttribute("aria-label", show ? "비밀번호 숨기기" : "비밀번호 보기");
+        button.setAttribute("aria-pressed", String(show));
+      });
+      hide(); wrap.append(button);
+      if (input.form) input.form.addEventListener("reset", hide);
+      const dialog = input.closest("dialog");
+      if (dialog) dialog.addEventListener("close", hide);
+    });
+  }
+
   /* ── App Initialization ────────────────────────────────────────────── */
   document.addEventListener("DOMContentLoaded", async () => {
+    installPasswordViewButtons();
     renderAuthNav();
     await firestoreCacheReady;
     initFirestoreSync();
