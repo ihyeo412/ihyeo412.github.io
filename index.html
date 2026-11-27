@@ -1746,6 +1746,8 @@
   .alert-board { min-width: 0; }
   .alert-board-empty { margin: 0.5rem 0; color: var(--muted); font-size: 0.8rem; }
   @media (max-width: 760px) { .alert-boards { grid-template-columns: minmax(0, 1fr); gap: 0.7rem; } }
+  .alert-detail-meta { font-size: 0.8rem; color: var(--muted); margin-top: 0.6rem; }
+  #alert-detail-view .alert-row-body { padding-top: 0; }
 </style>
 </head>
 <body>
@@ -1911,6 +1913,13 @@
 
 
   </div>
+
+  <main id="alert-detail-view" class="detail-view" aria-label="게시글 상세 페이지">
+    <div class="back-nav">
+      <button type="button" class="btn btn-ghost btn-sm" onclick="backToAlertBoards()">목록으로 돌아가기</button>
+    </div>
+    <article class="detail-card" id="alert-detail-content"></article>
+  </main>
 
   <!-- ── Rules Detail View ────────────────────────────────────────── -->
   <main id="rules-detail-view" class="detail-view">
@@ -3599,6 +3608,10 @@
 
   /* ── View Navigation ───────────────────────────────────────────────── */
   window.showMainView = function() {
+    hideAlertPost();
+    if (/^#post\//.test(window.location.hash)) {
+      window.history.replaceState(null, "", window.location.pathname + window.location.search + "#notices");
+    }
     if (window.stopReportComments) window.stopReportComments();
     document.getElementById("main-view").style.display = "block";
     document.getElementById("hike-detail-view").style.display = "none";
@@ -3613,6 +3626,7 @@
 
   window.openReportsBoardView = function() {
     showMainView();
+    hideAlertPost();
     document.getElementById("main-view").style.display = "none";
     document.getElementById("reports-board-view").style.display = "block";
     renderReports();
@@ -3620,6 +3634,7 @@
   };
 
   window.openRulesDetailView = function() {
+    hideAlertPost();
     document.getElementById("main-view").style.display = "none";
     document.getElementById("hike-detail-view").style.display = "none";
     document.getElementById("reports-board-view").style.display = "none";
@@ -3633,6 +3648,7 @@
   /* ── Members Board ─────────────────────────────────────────────────── */
   window.openMembersBoardView = function(filter = 'all') {
     activeMemberFilter = filter;
+    hideAlertPost();
     document.getElementById("main-view").style.display = "none";
     document.getElementById("hike-detail-view").style.display = "none";
     document.getElementById("reports-board-view").style.display = "none";
@@ -3823,7 +3839,7 @@
     return `${values.month}:${values.day}:${values.year}`;
   }
 
-  const expandedAlertRows = new Set();
+  let currentAlertPost = null;
   window.changeNoticePage = function(page) {
     alertBoardPages.notices = page; renderAlertRows();
   };
@@ -3863,6 +3879,7 @@
       window.restoreAlertComments("notices"); window.restoreAlertComments("infos");
     }
     if (window.watchAlertCounts) window.watchAlertCounts([...visibleNotices, ...visiblePosts]);
+    syncAlertRoute();
   }
 
   function renderAlertBoard(source, items, listId, paginationId, changePage) {
@@ -3875,7 +3892,6 @@
     const visibleRows = rows.slice((page - 1) * ALERTS_PER_PAGE, page * ALERTS_PER_PAGE);
     list.innerHTML = rows.length ? `<ul class="alert-row-list">${visibleRows.map(item => {
       const key = `${item.source}/${item.id}`;
-      const open = expandedAlertRows.has(key);
       const links = Array.isArray(item.links) ? item.links : [];
       const photos = (Array.isArray(item.images) ? item.images : []).map(safeImageUrl).filter(Boolean);
       const attached = photos.length > 0 || links.some(link => safeUrl(link.url));
@@ -3886,8 +3902,7 @@
       return `<li class="alert-row-item">
         <div class="alert-row-line">
           <span class="alert-row-date" title="작성 날짜 · MM:DD:YY · 미국 태평양 시간 기준">${escapeHtml(alertWrittenTime(item))}</span>
-          <button type="button" class="alert-row-title" onclick="toggleAlertRow('${item.source}', '${item.id}')"
-                  aria-expanded="${open}" aria-controls="alert-row-body-${item.source}-${item.id}">
+          <button type="button" class="alert-row-title" onclick="openAlertPost('${item.source}', '${item.id}')" title="글 상세 페이지 열기">
             <span class="alert-row-text">${escapeHtml(item.title || "제목 없음")}</span>
             <span class="info-update-badge alert-row-update" data-alert-update="${key}" ${infoUpdateLabel(item) ? '' : 'hidden'}>${infoUpdateLabel(item)}</span>
             <span class="alert-row-count" id="alert-count-${item.source}-${item.id}" data-alert-count="${key}" aria-label="댓글 수"></span>
@@ -3895,7 +3910,61 @@
           </button>
           <span class="alert-row-author">${escapeHtml(author)}</span>
         </div>
-        <div class="alert-row-body" id="alert-row-body-${item.source}-${item.id}" ${open ? '' : 'hidden'}>
+
+      </li>`;
+    }).join("")}</ul>` : `<p class="alert-board-empty">${source === "notices" ? '등록된 공지사항이 없습니다.' : '등록된 회원글이 없습니다.'}</p>`;
+    const pagination = document.getElementById(paginationId);
+    pagination.hidden = pages <= 1;
+    renderPagination(rows.length, page, paginationId, changePage, ALERTS_PER_PAGE);
+    return visibleRows;
+  }
+  function hideAlertPost() {
+    currentAlertPost = null;
+    const view = document.getElementById("alert-detail-view");
+    if (view) view.style.display = "none";
+    if (window.stopAlertComments) {
+      window.stopAlertComments("notices"); window.stopAlertComments("infos");
+    }
+  }
+
+  window.openAlertPost = function(source, id) {
+    if (!["notices", "infos"].includes(source)) return;
+    const hash = `#post/${source}/${encodeURIComponent(id)}`;
+    if (window.location.hash !== hash) window.location.hash = hash;
+    else renderAlertPost(source, id);
+  };
+
+  function renderAlertPost(source, id) {
+    const item = (source === "notices" ? noticesState : infosState).find(row => row.id === id);
+    if (!item) return;
+    const board = source === "notices" || memberPostsMovedToNotices.has(id) ? "notices" : "infos";
+    const post = {...item, source};
+    if (window.stopReportComments) window.stopReportComments();
+    if (window.stopAlertComments) {
+      window.stopAlertComments("notices"); window.stopAlertComments("infos");
+    }
+    window.currentDetailHikeId = null;
+    document.querySelectorAll('#main-view, main.detail-view').forEach(view => { view.style.display = "none"; });
+    currentAlertPost = {source, id};
+    const view = document.getElementById("alert-detail-view");
+    const content = document.getElementById("alert-detail-content");
+    content.innerHTML = `<div class="detail-header">
+      <div class="eyebrow">${board === "notices" ? "공지사항" : "회원글"}</div>
+      <h2 class="detail-title">${escapeHtml(item.title || "제목 없음")}</h2>
+      <p class="alert-detail-meta">${escapeHtml(alertWrittenTime(item))} · ${escapeHtml(String(item.by || "").replace(/\s*[·|]\s*\d{4}-\d{1,2}-\d{1,2}.*$/, "").trim())}</p>
+    </div>${renderAlertPostBody(post, board)}`;
+    view.style.display = "block";
+    if (window.restoreAlertComments) window.restoreAlertComments(source);
+    window.scrollTo({top: 0, behavior: "smooth"});
+  }
+
+  function renderAlertPostBody(item, source) {
+    const links = Array.isArray(item.links) ? item.links : [];
+    const photos = (Array.isArray(item.images) ? item.images : []).map(safeImageUrl).filter(Boolean);
+    const manage = isAdmin() || (source === "infos" && getCurrentUid() && item.ownerUid === getCurrentUid());
+    const edit = item.source === "notices" ? "openEditNoticeModal" : "openEditInfoModal";
+    const remove = item.source === "notices" ? "deleteNotice" : "deleteInfo";
+    return `        <div class="alert-row-body">
           <div class="alert-row-content">${renderCommentContent(item.content)}</div>
           ${links.map(link => {
             const href = safeUrl(link.url);
@@ -3907,24 +3976,24 @@
             <button type="button" class="btn btn-ghost btn-sm" onclick="${remove}('${item.id}')">삭제</button></div>` : ''}
           <button type="button" class="btn btn-ghost btn-sm" onclick="toggleAlertComments('${item.source}', '${item.id}')" aria-expanded="false" aria-controls="alert-comments-${item.source}-${item.id}">댓글 보기 / 쓰기</button>
           <div id="alert-comments-${item.source}-${item.id}" hidden></div>
-        </div>
-      </li>`;
-    }).join("")}</ul>` : `<p class="alert-board-empty">${source === "notices" ? '등록된 공지사항이 없습니다.' : '등록된 회원글이 없습니다.'}</p>`;
-    const pagination = document.getElementById(paginationId);
-    pagination.hidden = pages <= 1;
-    renderPagination(rows.length, page, paginationId, changePage, ALERTS_PER_PAGE);
-    return visibleRows;
+        </div>`;
   }
-  window.toggleAlertRow = function(source, id) {
-    const key = `${source}/${id}`;
-    const body = document.getElementById(`alert-row-body-${source}-${id}`);
-    if (!body) return;
-    const open = !expandedAlertRows.has(key);
-    if (open) expandedAlertRows.add(key); else expandedAlertRows.delete(key);
-    body.hidden = !open;
-    const button = body.previousElementSibling.querySelector(".alert-row-title");
-    if (button) button.setAttribute("aria-expanded", String(open));
+
+  window.backToAlertBoards = function() {
+    showMainView();
+    window.location.hash = "notices";
+    document.getElementById("notices").scrollIntoView({behavior: "smooth", block: "start"});
   };
+
+  function syncAlertRoute() {
+    const match = window.location.hash.match(/^#post\/(notices|infos)\/([^/]+)$/);
+    if (match) {
+      let id;
+      try { id = decodeURIComponent(match[2]); } catch { return; }
+      renderAlertPost(match[1], id);
+    } else if (currentAlertPost) showMainView();
+  }
+  window.addEventListener("hashchange", syncAlertRoute);
 
   const noticeModal = document.getElementById("notice-modal");
   document.getElementById("open-notice-modal-btn").addEventListener("click", () => {
@@ -4162,6 +4231,7 @@
 
   /* ── Intro Board View & Handlers ───────────────────────────────────── */
   window.openIntroBoardView = function() {
+    hideAlertPost();
     document.getElementById("main-view").style.display = "none";
     document.getElementById("hike-detail-view").style.display = "none";
     document.getElementById("reports-board-view").style.display = "none";
@@ -4818,6 +4888,7 @@
       </section>
     `;
 
+    hideAlertPost();
     document.getElementById("main-view").style.display = "none";
     document.getElementById("hike-detail-view").style.display = "block";
     document.getElementById("reports-board-view").style.display = "none";
@@ -4907,6 +4978,7 @@
       ` : ''}
     `;
 
+    hideAlertPost();
     document.getElementById("main-view").style.display = "none";
     document.getElementById("hike-detail-view").style.display = "none";
     document.getElementById("reports-board-view").style.display = "none";
