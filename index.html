@@ -3961,8 +3961,6 @@
   };
 
   /* ── 새로 가입한 회원 (메인 화면) ─────────────────────────────────── */
-  const NEWCOMER_VISIBLE_DAYS = 30;
-  const PROMOTION_VISIBLE_DAYS = 30;
   const PROMOTION_DISPLAY_START = "2026-11-27T19:41:14Z";
   const NEWCOMER_FRESH_DAYS = 14;   // NEW 배지를 붙이는 기간
 
@@ -3978,18 +3976,12 @@
     return Math.round((todayUTC - then) / 86400000);
   }
 
-  function recentNewMember(member, now = Date.now()) {
-    const joined = alertTimestamp(member.joinedAt || member.date);
-    return joined > 0 && joined <= now && now - joined < NEWCOMER_VISIBLE_DAYS * 86400000;
-  }
-
   function promotedSignupMember(member, now = Date.now()) {
     const promoted = alertTimestamp(member.promotedAt);
     return member.status === "regular"
       && (member.promotedFromNewcomer === true || !!member.joinedAt)
       && promoted >= alertTimestamp(PROMOTION_DISPLAY_START)
-      && promoted <= now
-      && now - promoted < PROMOTION_VISIBLE_DAYS * 86400000;
+      && promoted <= now;
   }
 
   function renderNewcomers() {
@@ -4005,14 +3997,16 @@
       return;
     }
     const pending = membersState
-      .filter(m => isSignupAccount(m) && m.status !== "regular" && recentNewMember(m))
+      .filter(m => isSignupAccount(m) && m.status !== "regular")
       .sort((a,b) => alertTimestamp(b.joinedAt || b.date) - alertTimestamp(a.joinedAt || a.date));
     document.getElementById("newcomer-count").textContent = `(${pending.length}명)`;
     box.hidden = pending.length === 0;
     chips.innerHTML = pending.map(m => {
       const when = String(m.joinedAt || m.date || "").slice(0,10);
-      return `<span class="newcomer-chip fresh"><span>${escapeHtml(m.name)}</span>
-        <span class="new-flag">NEW</span><span class="when">가입 ${escapeHtml(when)}</span></span>`;
+      const age = daysSince(when);
+      const fresh = age >= 0 && age < NEWCOMER_FRESH_DAYS;
+      return `<span class="newcomer-chip ${fresh ? 'fresh' : ''}"><span>${escapeHtml(m.name)}</span>
+        ${fresh ? '<span class="new-flag">NEW</span>' : ''}<span class="when">가입 ${escapeHtml(when)}</span></span>`;
     }).join("");
     const promoted = membersState.filter(member => promotedSignupMember(member))
       .sort((a,b) => alertTimestamp(b.promotedAt) - alertTimestamp(a.promotedAt)
