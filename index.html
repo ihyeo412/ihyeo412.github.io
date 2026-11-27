@@ -193,7 +193,7 @@
   .hero { padding-block: clamp(2.6rem, 8vw, 4.6rem); }
   .hero-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1.05fr) minmax(280px, 0.95fr);
+    grid-template-columns: minmax(0, 1fr);
     align-items: center;
     gap: clamp(1.8rem, 5vw, 4.5rem);
   }
@@ -201,11 +201,11 @@
     font-size: clamp(2.1rem, 6.4vw, 3.7rem);
     font-weight: 700;
     margin-top: 0.9rem;
-    max-width: 15ch;
+    max-width: none;
   }
   .hero p.lede {
     margin-top: 1.2rem;
-    max-width: 42ch;
+    max-width: none;
     font-size: clamp(1rem, 2.2vw, 1.08rem);
     color: var(--ink-soft);
   }
@@ -214,15 +214,6 @@
     flex-wrap: wrap;
     gap: 0.7rem;
     margin-top: 1.9rem;
-  }
-  .hero-photo {
-    width: 100%;
-    aspect-ratio: 4 / 3;
-    display: block;
-    object-fit: cover;
-    object-position: 65% center;
-    border-radius: var(--radius);
-    border: 1px solid var(--hairline);
   }
   .btn {
     display: inline-flex;
@@ -246,7 +237,6 @@
 
   @media (max-width: 680px) {
     .hero-layout { grid-template-columns: 1fr; }
-    .hero-photo { max-width: 540px; }
   }
 
   .section { padding-block: clamp(3rem, 8vw, 4.8rem); }
@@ -1775,7 +1765,7 @@
             <a class="btn btn-ghost" href="#join">처음 오시나요?</a>
           </div>
         </div>
-        <img class="hero-photo" src="welcome-mountain.jpeg" alt="푸른 하늘 아래의 산봉우리">
+
       </div>
     </section>
 
@@ -1785,7 +1775,6 @@
         <h3>📢 알림글</h3>
         <div class="head-actions">
           <button type="button" class="btn btn-solid btn-sm" id="open-info-modal-btn">+ 알림글 작성</button>
-          <button type="button" class="btn btn-ghost btn-sm" id="open-notice-modal-btn" hidden>+ 중요 알림 작성</button>
         </div>
       </div>
       <div class="notice-list" id="notice-list"></div>
@@ -3783,7 +3772,6 @@
       window.stopAlertComments("notices"); window.stopAlertComments("infos");
     }
     box.hidden = false;
-    document.getElementById("open-notice-modal-btn").hidden = !isAdmin();
     document.getElementById("info-list").innerHTML = "";
     document.getElementById("info-list").hidden = true;
     const notices = [...noticesState].sort((a,b) => Number(b.pinned === true) - Number(a.pinned === true)
@@ -3849,18 +3837,6 @@
   };
 
   const noticeModal = document.getElementById("notice-modal");
-
-  document.getElementById("open-notice-modal-btn").addEventListener("click", () => {
-    if (!isAdmin()) {
-      alert("중요 알림 작성은 관리자만 할 수 있습니다.");
-      return;
-    }
-    document.getElementById("notice-edit-id").value = "";
-    document.getElementById("notice-modal-title").innerText = "중요 알림 작성";
-    document.getElementById("notice-submit-btn").innerText = "중요 알림 등록";
-    document.getElementById("notice-form").reset();
-    noticeModal.showModal();
-  });
 
   window.openEditNoticeModal = function(id) {
     if (!isAdmin()) return;
