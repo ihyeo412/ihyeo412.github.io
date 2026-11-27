@@ -1713,8 +1713,23 @@
   .alert-comments .comment-body { white-space: pre-wrap; overflow-wrap: anywhere; }
   .alert-comments .comment-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
   #info-list { margin-top: 0.8rem; }
-  .alert-instructions { margin: 0.35rem 0; padding-left: 1.5rem; white-space: normal; }
-  .alert-instructions li { margin: 0.4rem 0; line-height: 1.7; }
+  .alert-row-list { list-style: none; margin: 0; padding: 0; }
+  .alert-row-line { display: flex; align-items: center; gap: 1rem; min-height: 2.25rem; }
+  .alert-row-title { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.35rem;
+    border: 0; background: none; padding: 0.35rem 0; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+  .alert-row-title:hover .alert-row-text { text-decoration: underline; }
+  .alert-row-kind { flex-shrink: 0; padding-right: 0.45rem; border-right: 1px solid var(--hairline); }
+  .alert-row-text { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .alert-row-count { color: #d31b16; flex-shrink: 0; font-size: 0.85em; }
+  .alert-row-count:empty { display: none; }
+  .alert-row-attachment { flex-shrink: 0; font-size: 0.85em; }
+  .alert-row-author { max-width: 25%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; flex-shrink: 0; }
+  .alert-row-body { padding: 0.6rem 0 1.2rem; }
+  .alert-row-body[hidden] { display: none; }
+  .alert-row-content { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.7; }
+  .alert-row-link { display: block; margin: 0.3rem 0; overflow-wrap: anywhere; }
+  .alert-row-actions { display: flex; gap: 0.4rem; margin: 0.5rem 0; }
+  @media (max-width: 600px) { .alert-row-line { gap: 0.5rem; font-size: 0.9rem; } }
 </style>
 </head>
 <body>
@@ -3714,70 +3729,102 @@
   /* ── 공지 ─────────────────────────────────────────────────────────────
      공지는 운영 정보라 관리자만 쓰고 고칠 수 있게 합니다.
      읽기는 로그인 없이 누구나 가능합니다. */
-  // These two guides show their instructions directly instead of title cards.
-  function isInlineAlertGuide(source, item) {
-    return (source === "notices" && item.id === "Ysq5Qtkib2Ll9YbBezMW")
-      || (source === "infos" && item.id === "KUU4P8LtGwCttquJXxjo");
-  }
-  function renderAlertInstructions(content) {
-    const lines = String(content || "").split(/\r?\n/)
-      .map(line => line.replace(/^\s*\d+[.)]\s*/, "").trim()).filter(Boolean);
-    return `<ul class="alert-instructions">${lines.map(line => `<li>${renderCommentContent(line)}</li>`).join("")}</ul>`;
-  }
+  const alertCountListeners = new Map();
+  window.watchAlertCounts = function(rows) {
+    const uid = getCurrentUid();
+    const wanted = new Set(uid ? rows.map(row => `${row.source}/${row.id}`) : []);
+    for (const [key, entry] of alertCountListeners) {
+      if (!wanted.has(key) || entry.uid !== uid) { entry.unsubscribe(); alertCountListeners.delete(key); }
+    }
+    if (!uid) return;
+    for (const row of rows) {
+      const key = `${row.source}/${row.id}`;
+      const paint = value => {
+        const el = document.getElementById(`alert-count-${row.source}-${row.id}`);
+        if (el) el.textContent = value;
+      };
+      const previous = alertCountListeners.get(key);
+      if (previous) { paint(previous.value); continue; }
+      const entry = {uid, value: "", unsubscribe: () => {}};
+      alertCountListeners.set(key, entry);
+      // Bound each listener; show 100+ instead of downloading an unbounded thread.
+      entry.unsubscribe = db.collection(row.source).doc(row.id).collection("comments").limit(101).onSnapshot(snapshot => {
+        if (alertCountListeners.get(key) !== entry || getCurrentUid() !== uid) return;
+        entry.value = snapshot.size > 100 ? "100+" : snapshot.size ? String(snapshot.size) : "";
+        paint(entry.value);
+      }, () => { if (alertCountListeners.get(key) === entry) { entry.value = ""; paint(""); } });
+    }
+  };
 
-  function renderNotices() {
+  const expandedAlertRows = new Set();
+  function renderNotices() { renderAlertRows(); }
+
+  function renderAlertRows() {
     const box = document.getElementById("notices");
     const list = document.getElementById("notice-list");
-    const addBtn = document.getElementById("open-notice-modal-btn");
-    if (window.stopAlertComments) window.stopAlertComments("notices");
     if (!box || !list) return;
-
-    if (addBtn) addBtn.hidden = !isAdmin();
-
-    // 공지가 없으면 관리자에게만 빈 영역을 보여 줍니다(작성 버튼 때문에).
-    if (noticesState.length === 0) {
-      box.hidden = false;
-      list.innerHTML = "";
-      return;
+    if (window.stopAlertComments) {
+      window.stopAlertComments("notices"); window.stopAlertComments("infos");
     }
-
-    // 중요 알림를 먼저, 그 안에서 최신순으로.
-    // 어느 경로로 그려도 순서가 같도록 정렬은 여기서 합니다.
-    const ordered = [...noticesState].sort((a, b) =>
-      ((b.pinned === true) - (a.pinned === true)) ||
-      String(b.createdAt || "").localeCompare(String(a.createdAt || ""))
-    );
-
     box.hidden = false;
-    list.innerHTML = ordered.map(n => {
-      const contentOnly = isInlineAlertGuide("notices", n);
-      const when = n.createdAt ? formatRsvpTime(new Date(Date.parse(n.createdAt))) : "";
-      return `
-        <article class="notice-item">
-          <div class="notice-item-head">
-            ${contentOnly ? '' : `<div class="notice-title">
-              ${n.pinned === true ? `<span class="notice-pin" title="중요 알림">📌</span>` : ''}
-              ${escapeHtml(n.title)}
-              ${infoUpdateLabel(n) ? `<span class="info-update-badge">${infoUpdateLabel(n)}</span>` : ''}
-            </div>`}
-            ${isAdmin() ? `
-              <div style="display:flex; gap:0.25rem;">
-                <button class="action-btn" onclick="openEditNoticeModal('${n.id}')" title="수정">수정</button>
-                <button class="action-btn delete" onclick="deleteNotice('${n.id}')" title="공지 삭제">×</button>
-              </div>
-            ` : ''}
-          </div>
-          <div class="notice-body">${contentOnly ? renderAlertInstructions(n.content) : renderCommentContent(n.content)}</div>
-          ${!contentOnly && (n.by || when) ? `
-            <div class="notice-by">${escapeHtml([n.by, when].filter(Boolean).join(" · "))}</div>
-          ` : ''}
-          <button type="button" class="btn btn-ghost btn-sm" onclick="toggleAlertComments('notices', '${n.id}')" aria-expanded="false" aria-controls="alert-comments-notices-${n.id}">댓글 보기 / 쓰기</button>
-          <div id="alert-comments-notices-${n.id}" hidden></div>
-        </article>
-      `;
-    }).join("");
-    if (window.restoreAlertComments) window.restoreAlertComments("notices");
+    document.getElementById("open-notice-modal-btn").hidden = !isAdmin();
+    document.getElementById("info-list").innerHTML = "";
+    document.getElementById("info-list").hidden = true;
+    const notices = [...noticesState].sort((a,b) => Number(b.pinned === true) - Number(a.pinned === true)
+      || String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+    const rows = [...notices.map(item => ({...item, source: "notices"})),
+      ...infosState.map(item => ({...item, source: "infos"}))];
+    list.innerHTML = `<ul class="alert-row-list">${rows.map(item => {
+      const key = `${item.source}/${item.id}`;
+      const open = expandedAlertRows.has(key);
+      const links = Array.isArray(item.links) ? item.links : [];
+      const photos = (Array.isArray(item.images) ? item.images : []).map(safeImageUrl).filter(Boolean);
+      const attached = photos.length > 0 || links.some(link => safeUrl(link.url));
+      const author = String(item.by || "").replace(/\s*[·|]\s*\d{4}-\d{1,2}-\d{1,2}.*$/, "").trim();
+      const manage = isAdmin() || (item.source === "infos" && getCurrentUid() && item.ownerUid === getCurrentUid());
+      const edit = item.source === "notices" ? "openEditNoticeModal" : "openEditInfoModal";
+      const remove = item.source === "notices" ? "deleteNotice" : "deleteInfo";
+      return `<li class="alert-row-item">
+        <div class="alert-row-line">
+          <button type="button" class="alert-row-title" onclick="toggleAlertRow('${item.source}', '${item.id}')"
+                  aria-expanded="${open}" aria-controls="alert-row-body-${item.source}-${item.id}">
+            <span class="alert-row-kind">${item.source === "notices" ? '알림' : '공유'}</span>
+            <span class="alert-row-text">${escapeHtml(item.title || "제목 없음")}</span>
+            <span class="alert-row-count" id="alert-count-${item.source}-${item.id}" data-alert-count="${key}" aria-label="댓글 수"></span>
+            ${attached ? '<span class="alert-row-attachment" role="img" aria-label="첨부 링크 또는 사진">📎</span>' : ''}
+          </button>
+          <span class="alert-row-author">${escapeHtml(author)}</span>
+        </div>
+        <div class="alert-row-body" id="alert-row-body-${item.source}-${item.id}" ${open ? '' : 'hidden'}>
+          <div class="alert-row-content">${renderCommentContent(item.content)}</div>
+          ${links.map(link => {
+            const href = safeUrl(link.url);
+            return href ? `<a class="alert-row-link" href="${href}" target="_blank" rel="noopener noreferrer">${escapeHtml(link.label || link.url)}</a>`
+              : `<div>${escapeHtml(link.label || "")}</div>`;
+          }).join("")}
+          ${photos.length ? `<div class="info-shots">${photos.map((src,i) => `<img src="${src}" alt="첨부 사진 ${i+1}" loading="lazy" onclick="openLightbox(this.src)">`).join("")}</div>` : ''}
+          ${manage ? `<div class="alert-row-actions"><button type="button" class="btn btn-ghost btn-sm" onclick="${edit}('${item.id}')">수정</button>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="${remove}('${item.id}')">삭제</button></div>` : ''}
+          <button type="button" class="btn btn-ghost btn-sm" onclick="toggleAlertComments('${item.source}', '${item.id}')" aria-expanded="false" aria-controls="alert-comments-${item.source}-${item.id}">댓글 보기 / 쓰기</button>
+          <div id="alert-comments-${item.source}-${item.id}" hidden></div>
+        </div>
+      </li>`;
+    }).join("")}</ul>`;
+    if (window.restoreAlertComments) {
+      window.restoreAlertComments("notices"); window.restoreAlertComments("infos");
+    }
+    if (window.watchAlertCounts) window.watchAlertCounts(rows);
   }
+  window.toggleAlertRow = function(source, id) {
+    const key = `${source}/${id}`;
+    const body = document.getElementById(`alert-row-body-${source}-${id}`);
+    if (!body) return;
+    const open = !expandedAlertRows.has(key);
+    if (open) expandedAlertRows.add(key); else expandedAlertRows.delete(key);
+    body.hidden = !open;
+    const button = body.previousElementSibling.querySelector(".alert-row-title");
+    if (button) button.setAttribute("aria-expanded", String(open));
+  };
 
   const noticeModal = document.getElementById("notice-modal");
 
@@ -5239,116 +5286,7 @@
     return recent(created) ? "NEW" : "";
   }
 
-  function renderInfos() {
-    const container = document.getElementById("info-list");
-    if (window.stopAlertComments) window.stopAlertComments("infos");
-    const currentUser = getCurrentUser();
-
-    // 제목 옆 문구는 고정 문구가 아니라 실제 등록된 항목에서 만듭니다.
-    const summary = document.getElementById("info-summary");
-    if (summary) {
-      const titles = infosState.map(i => String(i.title || "").trim()).filter(Boolean);
-      if (titles.length === 0) {
-        summary.textContent = "";
-      } else if (titles.length <= 3) {
-        summary.textContent = titles.join(" · ");
-      } else {
-        summary.textContent = `${titles.slice(0, 3).join(" · ")} 외 ${titles.length - 3}건`;
-      }
-    }
-
-    if (infosState.length === 0) {
-      container.innerHTML = `
-        <div class="info-empty">
-          ${noticesState.length ? "" : "등록된 알림글이 없습니다."}
-        </div>
-      `;
-      return;
-    }
-
-    container.innerHTML = infosState.map(item => {
-      const contentOnly = isInlineAlertGuide("infos", item);
-      const updateLabel = infoUpdateLabel(item);
-      const canEdit = currentUser && (item.ownerUid === getCurrentUid() || isAdmin());
-      const links = Array.isArray(item.links) ? item.links : [];
-      const shots = (Array.isArray(item.images) ? item.images : [])
-        .map(src => safeImageUrl(src))
-        .filter(Boolean);
-
-      // 기본은 접힌 상태. 펼침 여부는 실시간 갱신에도 유지되도록 밖에 둡니다.
-      const open = contentOnly || expandedInfoIds.has(item.id);
-
-      // 순서는 모두에게 공유되는 값이라 관리자만 바꿀 수 있게 합니다.
-      const canReorder = isAdmin();
-
-      // 접혀 있을 때 무엇이 들어 있는지 짐작할 수 있게 개수를 보여 줍니다.
-      const counts = [
-        links.length ? `링크 ${links.length}` : "",
-        shots.length ? `사진 ${shots.length}` : ""
-      ].filter(Boolean).join(" · ");
-
-      return `
-        <div class="linklist" data-info-id="${item.id}"
-             ${canReorder ? `
-               ondragstart="onInfoDragStart(event, '${item.id}')"
-               ondragover="onInfoDragOver(event, '${item.id}')"
-               ondragleave="onInfoDragLeave(event)"
-               ondrop="onInfoDrop(event, '${item.id}')"
-               ondragend="onInfoDragEnd(event)"
-             ` : ''}>
-          <div class="linklist-head">
-            ${canReorder ? `
-              <button type="button" class="drag-handle" title="끌어서 순서 바꾸기"
-                      aria-label="${escapeHtml(item.title)} 순서 바꾸기"
-                      onmousedown="beginInfoDrag(this)">⠿</button>
-            ` : ''}
-            ${contentOnly ? '' : `<h3>
-              <button type="button" class="info-toggle" aria-expanded="${open}"
-                      aria-controls="info-body-${item.id}"
-                      onclick="toggleInfo('${item.id}')">
-                <span class="chev" aria-hidden="true">▶</span>
-                <span>${escapeHtml(item.title)}</span>
-                ${updateLabel ? `<span class="info-update-badge">${updateLabel}</span>` : ''}
-                ${counts ? `<span class="count">${counts}</span>` : ''}
-              </button>
-            </h3>`}
-            ${canEdit ? `
-              <div style="display:flex; gap:0.25rem;">
-                <button class="action-btn" onclick="openEditInfoModal('${item.id}')" title="수정">수정</button>
-                <button class="action-btn delete" onclick="deleteInfo('${item.id}')" title="삭제">×</button>
-              </div>
-            ` : ''}
-          </div>
-
-          <div id="info-body-${item.id}" ${open ? "" : "hidden"}>
-            ${item.content ? `<div class="linklist-body">${contentOnly ? renderAlertInstructions(item.content) : escapeHtml(item.content)}</div>` : ''}
-
-            ${links.map(l => {
-              const url = safeUrl(l.url);
-              const label = escapeHtml(l.label || l.url || "");
-              // 주소가 아닌 값은 링크로 만들지 않고 글자만 보여 줍니다.
-              if (!url) return `<a class="internal" href="#info" onclick="return false;">${label}</a>`;
-              return `<a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`;
-            }).join("")}
-
-            ${shots.length > 0 ? `
-              <div class="info-shots">
-                ${shots.map((src, i) => `
-                  <img src="${src}" alt="${escapeHtml(item.title)} 첨부 사진 ${i + 1}"
-                       loading="lazy" onclick="openLightbox(this.src)">
-                `).join("")}
-              </div>
-            ` : ''}
-
-            ${!contentOnly && item.by ? `<div class="linklist-by">${escapeHtml(item.by)}</div>` : ''}
-            <button type="button" class="btn btn-ghost btn-sm" onclick="toggleAlertComments('infos', '${item.id}')" aria-expanded="false" aria-controls="alert-comments-infos-${item.id}">댓글 보기 / 쓰기</button>
-            <div id="alert-comments-infos-${item.id}" hidden></div>
-          </div>
-        </div>
-      `;
-    }).join("");
-    if (window.restoreAlertComments) window.restoreAlertComments("infos");
-  }
+  function renderInfos() { renderAlertRows(); }
 
   window.toggleInfo = function(id) {
     if (expandedInfoIds.has(id)) {
@@ -5663,10 +5601,6 @@
     renderAuthNav();
     await firestoreCacheReady;
     initFirestoreSync();
-    // Refresh expiring badges even if no database update arrives.
-    setInterval(() => {
-      if (infosState.some(item => item.createdAt || item.updatedAt)) renderInfos();
-    }, 60000);
   });
 </script>
 
