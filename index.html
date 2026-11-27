@@ -1713,6 +1713,8 @@
   .alert-comments .comment-body { white-space: pre-wrap; overflow-wrap: anywhere; }
   .alert-comments .comment-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
   #info-list { margin-top: 0.8rem; }
+  .alert-instructions { margin: 0.35rem 0; padding-left: 1.5rem; white-space: normal; }
+  .alert-instructions li { margin: 0.4rem 0; line-height: 1.7; }
 </style>
 </head>
 <body>
@@ -3712,6 +3714,17 @@
   /* ── 공지 ─────────────────────────────────────────────────────────────
      공지는 운영 정보라 관리자만 쓰고 고칠 수 있게 합니다.
      읽기는 로그인 없이 누구나 가능합니다. */
+  // These two guides show their instructions directly instead of title cards.
+  function isInlineAlertGuide(source, item) {
+    return (source === "notices" && item.id === "Ysq5Qtkib2Ll9YbBezMW")
+      || (source === "infos" && item.id === "KUU4P8LtGwCttquJXxjo");
+  }
+  function renderAlertInstructions(content) {
+    const lines = String(content || "").split(/\r?\n/)
+      .map(line => line.replace(/^\s*\d+[.)]\s*/, "").trim()).filter(Boolean);
+    return `<ul class="alert-instructions">${lines.map(line => `<li>${renderCommentContent(line)}</li>`).join("")}</ul>`;
+  }
+
   function renderNotices() {
     const box = document.getElementById("notices");
     const list = document.getElementById("notice-list");
@@ -3737,15 +3750,16 @@
 
     box.hidden = false;
     list.innerHTML = ordered.map(n => {
+      const contentOnly = isInlineAlertGuide("notices", n);
       const when = n.createdAt ? formatRsvpTime(new Date(Date.parse(n.createdAt))) : "";
       return `
         <article class="notice-item">
           <div class="notice-item-head">
-            <div class="notice-title">
+            ${contentOnly ? '' : `<div class="notice-title">
               ${n.pinned === true ? `<span class="notice-pin" title="중요 알림">📌</span>` : ''}
               ${escapeHtml(n.title)}
               ${infoUpdateLabel(n) ? `<span class="info-update-badge">${infoUpdateLabel(n)}</span>` : ''}
-            </div>
+            </div>`}
             ${isAdmin() ? `
               <div style="display:flex; gap:0.25rem;">
                 <button class="action-btn" onclick="openEditNoticeModal('${n.id}')" title="수정">수정</button>
@@ -3753,8 +3767,8 @@
               </div>
             ` : ''}
           </div>
-          <div class="notice-body">${renderCommentContent(n.content)}</div>
-          ${(n.by || when) ? `
+          <div class="notice-body">${contentOnly ? renderAlertInstructions(n.content) : renderCommentContent(n.content)}</div>
+          ${!contentOnly && (n.by || when) ? `
             <div class="notice-by">${escapeHtml([n.by, when].filter(Boolean).join(" · "))}</div>
           ` : ''}
           <button type="button" class="btn btn-ghost btn-sm" onclick="toggleAlertComments('notices', '${n.id}')" aria-expanded="false" aria-controls="alert-comments-notices-${n.id}">댓글 보기 / 쓰기</button>
@@ -5253,6 +5267,7 @@
     }
 
     container.innerHTML = infosState.map(item => {
+      const contentOnly = isInlineAlertGuide("infos", item);
       const updateLabel = infoUpdateLabel(item);
       const canEdit = currentUser && (item.ownerUid === getCurrentUid() || isAdmin());
       const links = Array.isArray(item.links) ? item.links : [];
@@ -5261,7 +5276,7 @@
         .filter(Boolean);
 
       // 기본은 접힌 상태. 펼침 여부는 실시간 갱신에도 유지되도록 밖에 둡니다.
-      const open = expandedInfoIds.has(item.id);
+      const open = contentOnly || expandedInfoIds.has(item.id);
 
       // 순서는 모두에게 공유되는 값이라 관리자만 바꿀 수 있게 합니다.
       const canReorder = isAdmin();
@@ -5287,7 +5302,7 @@
                       aria-label="${escapeHtml(item.title)} 순서 바꾸기"
                       onmousedown="beginInfoDrag(this)">⠿</button>
             ` : ''}
-            <h3>
+            ${contentOnly ? '' : `<h3>
               <button type="button" class="info-toggle" aria-expanded="${open}"
                       aria-controls="info-body-${item.id}"
                       onclick="toggleInfo('${item.id}')">
@@ -5296,7 +5311,7 @@
                 ${updateLabel ? `<span class="info-update-badge">${updateLabel}</span>` : ''}
                 ${counts ? `<span class="count">${counts}</span>` : ''}
               </button>
-            </h3>
+            </h3>`}
             ${canEdit ? `
               <div style="display:flex; gap:0.25rem;">
                 <button class="action-btn" onclick="openEditInfoModal('${item.id}')" title="수정">수정</button>
@@ -5306,7 +5321,7 @@
           </div>
 
           <div id="info-body-${item.id}" ${open ? "" : "hidden"}>
-            ${item.content ? `<div class="linklist-body">${escapeHtml(item.content)}</div>` : ''}
+            ${item.content ? `<div class="linklist-body">${contentOnly ? renderAlertInstructions(item.content) : escapeHtml(item.content)}</div>` : ''}
 
             ${links.map(l => {
               const url = safeUrl(l.url);
@@ -5325,7 +5340,7 @@
               </div>
             ` : ''}
 
-            ${item.by ? `<div class="linklist-by">${escapeHtml(item.by)}</div>` : ''}
+            ${!contentOnly && item.by ? `<div class="linklist-by">${escapeHtml(item.by)}</div>` : ''}
             <button type="button" class="btn btn-ghost btn-sm" onclick="toggleAlertComments('infos', '${item.id}')" aria-expanded="false" aria-controls="alert-comments-infos-${item.id}">댓글 보기 / 쓰기</button>
             <div id="alert-comments-infos-${item.id}" hidden></div>
           </div>
