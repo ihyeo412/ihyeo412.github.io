@@ -1708,8 +1708,7 @@
   .alert-row-title { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.35rem;
     border: 0; background: none; padding: 0.2rem 0; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
   .alert-row-title:hover .alert-row-text { text-decoration: underline; }
-  .alert-row-kind { flex-shrink: 0; padding-right: 0.45rem; border-right: 1px solid var(--hairline); }
-  .alert-row-text { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .alert-row-text { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: 700; }
   .alert-row-count { color: #d31b16; flex-shrink: 0; font-size: 0.85em; }
   .alert-row-count:empty { display: none; }
   .alert-row-attachment { flex-shrink: 0; font-size: 0.85em; }
@@ -1729,6 +1728,14 @@
   #alert-pagination { margin: 0.4rem 0 0; gap: 0.3rem; }
   #alert-pagination[hidden] { display: none; }
   #alert-pagination .page-btn { min-width: 1.6rem; height: 1.6rem; font-size: 0.75rem; padding: 0.15rem 0.35rem; }
+  .alert-row-update { flex-shrink: 0; font-size: 0.65rem; font-weight: 700; }
+  .alert-row-update[hidden] { display: none; }
+  .alert-row-date { flex-shrink: 0; color: var(--muted); font-size: 0.68rem; white-space: nowrap; }
+  @media (max-width: 600px) {
+    .alert-row-line { flex-wrap: wrap; column-gap: 0.4rem; row-gap: 0; }
+    .alert-row-title { flex-basis: 65%; }
+    .alert-row-date { flex-basis: 100%; text-align: right; font-size: 0.63rem; padding-bottom: 0.1rem; }
+  }
 </style>
 </head>
 <body>
@@ -3757,6 +3764,48 @@
 
   const ALERTS_PER_PAGE = 5;
   let currentAlertPage = 1;
+  // Expire labels without redrawing rows or interrupting open comments.
+  function refreshAlertUpdateBadges() {
+    const rows = new Map([
+      ...noticesState.map(item => [`notices/${item.id}`, item]),
+      ...infosState.map(item => [`infos/${item.id}`, item])
+    ]);
+    document.querySelectorAll("[data-alert-update]").forEach(el => {
+      const item = rows.get(el.dataset.alertUpdate);
+      const label = item ? infoUpdateLabel(item) : "";
+      el.textContent = label;
+      el.hidden = !label;
+    });
+  }
+
+  function alertTimestamp(value) {
+    if (!value) return 0;
+    if (typeof value.toMillis === "function") return value.toMillis();
+    if (typeof value === "object" && typeof value.seconds === "number") return value.seconds * 1000;
+    const result = Date.parse(value);
+    return Number.isFinite(result) ? result : 0;
+  }
+  function alertLegacyDate(item) {
+    return String(item.by || "").match(/(?:[·|]\s*)(\d{4}-\d{2}-\d{2})\s*$/)?.[1] || "";
+  }
+  function alertActivityTime(item) {
+    return Math.max(alertTimestamp(item.updatedAt), alertTimestamp(item.createdAt))
+      || alertTimestamp(alertLegacyDate(item));
+  }
+  function compareAlertActivity(a, b) {
+    return alertActivityTime(b) - alertActivityTime(a)
+      || alertTimestamp(b.createdAt) - alertTimestamp(a.createdAt)
+      || `${a.source}/${a.id}`.localeCompare(`${b.source}/${b.id}`);
+  }
+  function alertWrittenTime(item) {
+    const time = alertTimestamp(item.createdAt);
+    if (!time) return alertLegacyDate(item) || "작성 시간 미기록";
+    return new Intl.DateTimeFormat("ko-KR", {
+      timeZone: "America/Los_Angeles", year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", hourCycle: "h23"
+    }).format(new Date(time));
+  }
+
   const expandedAlertRows = new Set();
   window.changeAlertPage = function(page) {
     currentAlertPage = page;
@@ -3774,10 +3823,8 @@
     box.hidden = false;
     document.getElementById("info-list").innerHTML = "";
     document.getElementById("info-list").hidden = true;
-    const notices = [...noticesState].sort((a,b) => Number(b.pinned === true) - Number(a.pinned === true)
-      || String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
-    const rows = [...notices.map(item => ({...item, source: "notices"})),
-      ...infosState.map(item => ({...item, source: "infos"}))];
+    const rows = [...noticesState.map(item => ({...item, source: "notices"})),
+      ...infosState.map(item => ({...item, source: "infos"}))].sort(compareAlertActivity);
     const totalAlertPages = Math.max(1, Math.ceil(rows.length / ALERTS_PER_PAGE));
     currentAlertPage = Math.max(1, Math.min(currentAlertPage, totalAlertPages));
     const visibleRows = rows.slice((currentAlertPage - 1) * ALERTS_PER_PAGE, currentAlertPage * ALERTS_PER_PAGE);
@@ -3795,12 +3842,13 @@
         <div class="alert-row-line">
           <button type="button" class="alert-row-title" onclick="toggleAlertRow('${item.source}', '${item.id}')"
                   aria-expanded="${open}" aria-controls="alert-row-body-${item.source}-${item.id}">
-            <span class="alert-row-kind">${item.source === "notices" ? '알림' : '공유'}</span>
             <span class="alert-row-text">${escapeHtml(item.title || "제목 없음")}</span>
+            <span class="info-update-badge alert-row-update" data-alert-update="${key}" ${infoUpdateLabel(item) ? '' : 'hidden'}>${infoUpdateLabel(item)}</span>
             <span class="alert-row-count" id="alert-count-${item.source}-${item.id}" data-alert-count="${key}" aria-label="댓글 수"></span>
             ${attached ? '<span class="alert-row-attachment" role="img" aria-label="첨부 링크 또는 사진">📎</span>' : ''}
           </button>
           <span class="alert-row-author">${escapeHtml(author)}</span>
+          <span class="alert-row-date" title="작성 시간 · 미국 태평양 시간 기준">${escapeHtml(alertWrittenTime(item))}</span>
         </div>
         <div class="alert-row-body" id="alert-row-body-${item.source}-${item.id}" ${open ? '' : 'hidden'}>
           <div class="alert-row-content">${renderCommentContent(item.content)}</div>
@@ -5599,6 +5647,7 @@
     renderAuthNav();
     await firestoreCacheReady;
     initFirestoreSync();
+    setInterval(refreshAlertUpdateBadges, 60000);
   });
 </script>
 
