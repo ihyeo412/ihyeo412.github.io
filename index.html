@@ -1719,13 +1719,19 @@
   .alert-row-link { display: block; margin: 0.3rem 0; overflow-wrap: anywhere; }
   .alert-row-actions { display: flex; gap: 0.4rem; margin: 0.5rem 0; }
   @media (max-width: 600px) { .alert-row-line { gap: 0.5rem; font-size: 0.78rem; } }
-  .alert-board { height: auto; min-height: 0; margin-top: 0; padding: 0.5rem 0.8rem; }
-  .alert-board .notices-head { margin-bottom: 0.35rem; gap: 0.5rem; }
+  .alert-board {
+    display: grid; grid-template-rows: 2rem 8.5rem 1.8rem; row-gap: 0.25rem;
+    height: calc(13.8rem + 2px); min-height: 0; margin-top: 0; padding: 0.5rem 0.8rem;
+  }
+  .alert-board .notices-head { height: 2rem; margin: 0; gap: 0.5rem; flex-wrap: nowrap; }
+  .alert-board .notice-list { display: block; height: 8.5rem; min-height: 0; overflow-y: auto; overflow-x: hidden; }
+  .alert-board .alert-row-line { height: 1.7rem; min-height: 1.7rem; }
+  .alert-board .notices-head h3 { white-space: nowrap; }
   .alert-board .notices-head h3 { font-size: 0.95rem; font-weight: 600; letter-spacing: 0.02em; }
   .alert-board .notices-head .btn { font-size: 0.72rem; padding: 0.3rem 0.55rem; }
   #notices #info { display: none; padding: 0; margin: 0; }
   #notices #info-list { margin: 0; }
-  .alert-board-pagination { margin: 0.4rem 0 0; gap: 0.3rem; }
+  .alert-board-pagination { height: 1.8rem; margin: 0; gap: 0.3rem; align-self: center; flex-wrap: nowrap; overflow-x: auto; }
   .alert-board-pagination[hidden] { display: none; }
   .alert-board-pagination .page-btn { min-width: 1.6rem; height: 1.6rem; font-size: 0.75rem; padding: 0.15rem 0.35rem; }
   .alert-row-update { flex-shrink: 0; font-size: 0.65rem; font-weight: 700; }
