@@ -1708,6 +1708,11 @@
     background: var(--accent-soft); color: var(--accent);
     font-size: 0.7rem; font-weight: 700; white-space: nowrap;
   }
+  .alert-comments { margin-top: 0.8rem; padding: 0.8rem 0; border-top: 1px solid var(--hairline); }
+  .alert-comments textarea { width: 100%; min-height: 5rem; box-sizing: border-box; }
+  .alert-comments .comment-body { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .alert-comments .comment-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+  #info-list { margin-top: 0.8rem; }
 </style>
 </head>
 <body>
@@ -1722,7 +1727,7 @@
       <a href="#schedule" onclick="showMainView()">산행 일정</a>
       <a href="#all-reports" onclick="openReportsBoardView()">산행 후기</a>
       <a href="#join" onclick="showMainView()">가입 안내</a>
-      <a href="#info" onclick="showMainView()">기타 정보</a>
+      <a href="#notices" onclick="showMainView()">알림글</a>
       <div id="auth-nav-container"></div>
     </nav>
   </header>
@@ -1749,12 +1754,19 @@
     </section>
 
     <!-- ── 공지 (맨 위 그림 바로 아래) ──────────────────────────────── -->
-    <section class="notices" id="notices" hidden>
+    <section class="notices" id="notices">
       <div class="notices-head">
-        <h3>📢 공지</h3>
-        <button type="button" class="btn btn-solid btn-sm" id="open-notice-modal-btn" hidden>+ 공지 작성</button>
+        <h3>📢 알림글</h3>
+        <div class="head-actions">
+          <button type="button" class="btn btn-solid btn-sm" id="open-info-modal-btn">+ 알림글 작성</button>
+          <button type="button" class="btn btn-ghost btn-sm" id="open-notice-modal-btn" hidden>+ 중요 알림 작성</button>
+        </div>
       </div>
       <div class="notice-list" id="notice-list"></div>
+      <div id="info">
+        <span class="period" id="info-summary" hidden></span>
+        <div class="cols" id="info-list">알림글을 불러오는 중입니다…</div>
+      </div>
     </section>
 
     <section class="newcomers" id="recent-intros" hidden aria-labelledby="recent-intros-title">
@@ -1857,18 +1869,7 @@
 
     </section>
 
-    <!-- ── Info Section ────────────────────────────────────────────── -->
-    <section class="section" id="info">
-      <div class="section-head">
-        <h2>기타 정보</h2>
-        <span class="period" id="info-summary"></span>
-        <div class="head-actions">
-          <button type="button" class="btn btn-solid btn-sm" id="open-info-modal-btn">+ 정보 추가하기</button>
-        </div>
-      </div>
 
-      <div class="cols" id="info-list"></div>
-    </section>
   </div>
 
   <!-- ── Rules Detail View ────────────────────────────────────────── -->
@@ -2333,12 +2334,12 @@
     </form>
   </dialog>
 
-  <!-- ── 공지 작성 / 수정 ──────────────────────────────────────────── -->
+  <!-- ── 중요 알림 작성 / 수정 ──────────────────────────────────────────── -->
   <dialog id="notice-modal" class="modal">
     <form id="notice-form" method="dialog" class="modal-box">
       <input type="hidden" id="notice-edit-id" value="">
       <div class="modal-head">
-        <h3 id="notice-modal-title">공지 작성</h3>
+        <h3 id="notice-modal-title">중요 알림 작성</h3>
         <button type="button" id="close-notice-modal-btn" class="close-btn" aria-label="닫기">×</button>
       </div>
 
@@ -2354,24 +2355,24 @@
         <label class="full">
           <span>
             <input type="checkbox" id="notice-pinned" style="width:auto; margin-right:0.4rem;">
-            중요 공지로 표시 (맨 위에 고정)
+            중요 알림로 표시 (맨 위에 고정)
           </span>
         </label>
       </div>
 
       <div class="modal-foot">
         <button type="button" class="btn btn-ghost" id="cancel-notice-btn">취소</button>
-        <button type="submit" class="btn btn-solid" id="notice-submit-btn">공지 등록</button>
+        <button type="submit" class="btn btn-solid" id="notice-submit-btn">중요 알림 등록</button>
       </div>
     </form>
   </dialog>
 
-  <!-- ── 기타 정보 등록 / 수정 ─────────────────────────────────────── -->
+  <!-- ── 알림글 작성 / 수정 ─────────────────────────────────────── -->
   <dialog id="info-modal" class="modal">
     <form id="info-form" method="dialog" class="modal-box">
       <input type="hidden" id="info-edit-id" value="">
       <div class="modal-head">
-        <h3 id="info-modal-title">기타 정보 등록</h3>
+        <h3 id="info-modal-title">알림글 작성</h3>
         <button type="button" id="close-info-modal-btn" class="close-btn" aria-label="닫기">×</button>
       </div>
 
@@ -3715,18 +3716,19 @@
     const box = document.getElementById("notices");
     const list = document.getElementById("notice-list");
     const addBtn = document.getElementById("open-notice-modal-btn");
+    if (window.stopAlertComments) window.stopAlertComments("notices");
     if (!box || !list) return;
 
     if (addBtn) addBtn.hidden = !isAdmin();
 
     // 공지가 없으면 관리자에게만 빈 영역을 보여 줍니다(작성 버튼 때문에).
     if (noticesState.length === 0) {
-      box.hidden = !isAdmin();
-      list.innerHTML = `<div class="notice-empty">등록된 공지가 없습니다.</div>`;
+      box.hidden = false;
+      list.innerHTML = "";
       return;
     }
 
-    // 중요 공지를 먼저, 그 안에서 최신순으로.
+    // 중요 알림를 먼저, 그 안에서 최신순으로.
     // 어느 경로로 그려도 순서가 같도록 정렬은 여기서 합니다.
     const ordered = [...noticesState].sort((a, b) =>
       ((b.pinned === true) - (a.pinned === true)) ||
@@ -3740,8 +3742,9 @@
         <article class="notice-item">
           <div class="notice-item-head">
             <div class="notice-title">
-              ${n.pinned === true ? `<span class="notice-pin" title="중요 공지">📌</span>` : ''}
+              ${n.pinned === true ? `<span class="notice-pin" title="중요 알림">📌</span>` : ''}
               ${escapeHtml(n.title)}
+              ${infoUpdateLabel(n) ? `<span class="info-update-badge">${infoUpdateLabel(n)}</span>` : ''}
             </div>
             ${isAdmin() ? `
               <div style="display:flex; gap:0.25rem;">
@@ -3750,25 +3753,28 @@
               </div>
             ` : ''}
           </div>
-          <div class="notice-body">${escapeHtml(n.content)}</div>
+          <div class="notice-body">${renderCommentContent(n.content)}</div>
           ${(n.by || when) ? `
             <div class="notice-by">${escapeHtml([n.by, when].filter(Boolean).join(" · "))}</div>
           ` : ''}
+          <button type="button" class="btn btn-ghost btn-sm" onclick="toggleAlertComments('notices', '${n.id}')" aria-expanded="false" aria-controls="alert-comments-notices-${n.id}">댓글 보기 / 쓰기</button>
+          <div id="alert-comments-notices-${n.id}" hidden></div>
         </article>
       `;
     }).join("");
+    if (window.restoreAlertComments) window.restoreAlertComments("notices");
   }
 
   const noticeModal = document.getElementById("notice-modal");
 
   document.getElementById("open-notice-modal-btn").addEventListener("click", () => {
     if (!isAdmin()) {
-      alert("공지 작성은 관리자만 할 수 있습니다.");
+      alert("중요 알림 작성은 관리자만 할 수 있습니다.");
       return;
     }
     document.getElementById("notice-edit-id").value = "";
-    document.getElementById("notice-modal-title").innerText = "공지 작성";
-    document.getElementById("notice-submit-btn").innerText = "공지 등록";
+    document.getElementById("notice-modal-title").innerText = "중요 알림 작성";
+    document.getElementById("notice-submit-btn").innerText = "중요 알림 등록";
     document.getElementById("notice-form").reset();
     noticeModal.showModal();
   });
@@ -3779,7 +3785,7 @@
     if (!n) return;
 
     document.getElementById("notice-edit-id").value = n.id;
-    document.getElementById("notice-modal-title").innerText = "공지 수정";
+    document.getElementById("notice-modal-title").innerText = "중요 알림 수정";
     document.getElementById("notice-submit-btn").innerText = "수정 완료";
     document.getElementById("notice-title").value = n.title || "";
     document.getElementById("notice-content").value = n.content || "";
@@ -3793,7 +3799,7 @@
   document.getElementById("notice-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     if (!isAdmin()) {
-      alert("공지 작성은 관리자만 할 수 있습니다.");
+      alert("중요 알림 작성은 관리자만 할 수 있습니다.");
       return;
     }
 
@@ -3811,11 +3817,13 @@
 
     try {
       if (editId) {
+        payload.updatedAt = new Date().toISOString();
         await db.collection("notices").doc(editId).update(payload);
       } else {
         payload.ownerUid = getCurrentUid();
         payload.by = getCurrentUser();
         payload.createdAt = new Date().toISOString();
+        payload.updatedAt = payload.createdAt;
         await db.collection("notices").add(payload);
       }
       document.getElementById("notice-form").reset();
@@ -5219,6 +5227,7 @@
 
   function renderInfos() {
     const container = document.getElementById("info-list");
+    if (window.stopAlertComments) window.stopAlertComments("infos");
     const currentUser = getCurrentUser();
 
     // 제목 옆 문구는 고정 문구가 아니라 실제 등록된 항목에서 만듭니다.
@@ -5237,7 +5246,7 @@
     if (infosState.length === 0) {
       container.innerHTML = `
         <div class="info-empty">
-          등록된 정보가 없습니다. 퍼밋·예약 방법이나 이용 안내를 남겨 주세요!
+          ${noticesState.length ? "" : "등록된 알림글이 없습니다."}
         </div>
       `;
       return;
@@ -5317,10 +5326,13 @@
             ` : ''}
 
             ${item.by ? `<div class="linklist-by">${escapeHtml(item.by)}</div>` : ''}
+            <button type="button" class="btn btn-ghost btn-sm" onclick="toggleAlertComments('infos', '${item.id}')" aria-expanded="false" aria-controls="alert-comments-infos-${item.id}">댓글 보기 / 쓰기</button>
+            <div id="alert-comments-infos-${item.id}" hidden></div>
           </div>
         </div>
       `;
     }).join("");
+    if (window.restoreAlertComments) window.restoreAlertComments("infos");
   }
 
   window.toggleInfo = function(id) {
@@ -5549,12 +5561,12 @@
   document.getElementById("open-info-modal-btn").addEventListener("click", () => {
     const currentUser = getCurrentUser();
     if (!isRegularMember(currentUser)) {
-      alert("기타 정보 등록은 [정회원]만 가능합니다.");
+      alert("알림글 작성은 [정회원]만 가능합니다.");
       if (!currentUser) openAuthModal(false);
       return;
     }
     document.getElementById("info-edit-id").value = "";
-    document.getElementById("info-modal-title").innerText = "기타 정보 등록";
+    document.getElementById("info-modal-title").innerText = "알림글 작성";
     document.getElementById("info-submit-btn").innerText = "정보 등록";
     document.getElementById("info-form").reset();
     infoDraftImages = [];
@@ -5572,7 +5584,7 @@
     }
 
     document.getElementById("info-edit-id").value = item.id;
-    document.getElementById("info-modal-title").innerText = "기타 정보 수정";
+    document.getElementById("info-modal-title").innerText = "알림글 수정";
     document.getElementById("info-submit-btn").innerText = "수정 완료";
 
     document.getElementById("info-title").value = item.title || "";
@@ -5644,6 +5656,7 @@
 </script>
 
 <script src="report-comments.js"></script>
+<script src="alert-comments.js"></script>
 <script src="auth-recovery.js"></script>
 </body>
 </html>
