@@ -1812,7 +1812,7 @@
         </div>
       </div>
 
-      <div class="reports" id="report-list"></div>
+      <div class="reports" id="report-list" aria-live="polite">산행 후기를 불러오는 중입니다…</div>
       <nav class="pagination" id="home-report-pagination" aria-label="첫 화면 산행 후기 페이지"></nav>
     </section>
 
@@ -1914,7 +1914,7 @@
     </div>
     <section class="section" id="all-reports">
       <div class="section-head"><h2>산행 후기</h2><span class="period">전체 후기</span></div>
-      <div class="reports" id="all-report-list"></div>
+      <div class="reports" id="all-report-list" aria-live="polite">산행 후기를 불러오는 중입니다…</div>
       <nav class="pagination" id="report-pagination" aria-label="산행 후기 페이지"></nav>
     </section>
   </main>
@@ -2644,6 +2644,33 @@
 
   let hikesState = [];
   let reportsState = [];
+  let reportsLoadState = "loading";
+  let reportsUnsubscribe = null;
+  let reportsLoadTimer = null;
+
+  function subscribeReports() {
+    if (reportsUnsubscribe) reportsUnsubscribe();
+    clearTimeout(reportsLoadTimer);
+    reportsLoadState = "loading";
+    renderReports();
+    reportsLoadTimer = setTimeout(() => {
+      reportsLoadState = "slow";
+      renderReports();
+    }, 15000);
+    reportsUnsubscribe = db.collection("reports").onSnapshot(snapshot => {
+      clearTimeout(reportsLoadTimer);
+      reportsState = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+      reportsLoadState = "ready";
+      renderReports();
+      if (window.validateReportComments) window.validateReportComments();
+    }, err => {
+      clearTimeout(reportsLoadTimer);
+      console.error("산행 후기 동기화 오류:", err);
+      reportsLoadState = "error";
+      renderReports();
+    });
+  }
+  window.retryReports = subscribeReports;
   const REPORTS_PER_PAGE = 8;
   let currentReportPage = 1;
   let currentHomeReportPage = 1;
@@ -2949,15 +2976,8 @@
       }
     }, onSyncError("산행 일정"));
 
-    // 2. 산행 후기
-    db.collection("reports").onSnapshot((snapshot) => {
-      reportsState = [];
-      snapshot.forEach(doc => {
-        reportsState.push({ id: doc.id, ...doc.data() });
-      });
-      renderReports();
-      if (window.validateReportComments) window.validateReportComments();
-    }, onSyncError("산행 후기"));
+    // 2. 산행 후기 — show loading/errors and allow resubscription after failure.
+    subscribeReports();
 
     // 3. 가입 인사
     db.collection("intros").onSnapshot((snapshot) => {
@@ -3063,6 +3083,7 @@
   // 로그인/로그아웃 시 세션을 다시 만들고 화면 전체를 갱신합니다.
   auth.onAuthStateChanged(async (user) => {
     if (!user) {
+      const wasSignedIn = !!currentSession;
       currentSession = null;
       renderAuthNav();
       renderHikes();
@@ -3071,7 +3092,7 @@
       renderInfos();
       renderNotices();
       subscribeIntroContacts();
-      showMainView();
+      if (wasSignedIn) showMainView();
       return;
     }
 
@@ -4906,6 +4927,17 @@
   function renderReportList(containerId, reports) {
     const container = document.getElementById(containerId);
     const currentUser = getCurrentUser();
+    if (!container) return;
+    const status = reportsLoadState === "error"
+      ? "산행 후기를 불러오지 못했습니다. 연결을 확인하고 다시 시도해 주세요."
+      : reportsLoadState === "slow"
+        ? "사진이 포함된 후기를 불러오는 데 시간이 걸리고 있습니다."
+        : "산행 후기를 불러오는 중입니다…";
+    const retry = '<button type="button" class="btn btn-ghost btn-sm" onclick="retryReports()">다시 불러오기</button>';
+    if (!reportsState.length && reportsLoadState !== "ready") {
+      container.innerHTML = `<div role="status">${status} ${reportsLoadState === "loading" ? "" : retry}</div>`;
+      return;
+    }
 
     if (reports.length === 0) {
       container.innerHTML = `
@@ -4946,6 +4978,9 @@
         </article>
       `;
     }).join("");
+    if (reportsLoadState === "error" || reportsLoadState === "slow") {
+      container.insertAdjacentHTML("afterbegin", `<div role="status">${status} 기존에 불러온 목록을 표시합니다. ${retry}</div>`);
+    }
   }
 
   window.deleteReport = async function(id) {
