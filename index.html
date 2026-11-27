@@ -3962,6 +3962,8 @@
 
   /* ── 새로 가입한 회원 (메인 화면) ─────────────────────────────────── */
   const NEWCOMER_VISIBLE_DAYS = 30;
+  const PROMOTION_VISIBLE_DAYS = 30;
+  const PROMOTION_DISPLAY_START = "2026-11-27T19:41:14Z";
   const NEWCOMER_FRESH_DAYS = 14;   // NEW 배지를 붙이는 기간
 
   // 가입일은 toISOString() 으로 만든 UTC 날짜 문자열입니다.
@@ -3981,9 +3983,13 @@
     return joined > 0 && joined <= now && now - joined < NEWCOMER_VISIBLE_DAYS * 86400000;
   }
 
-  function promotedSignupMember(member) {
+  function promotedSignupMember(member, now = Date.now()) {
+    const promoted = alertTimestamp(member.promotedAt);
     return member.status === "regular"
-      && (member.promotedFromNewcomer === true || !!member.joinedAt);
+      && (member.promotedFromNewcomer === true || !!member.joinedAt)
+      && promoted >= alertTimestamp(PROMOTION_DISPLAY_START)
+      && promoted <= now
+      && now - promoted < PROMOTION_VISIBLE_DAYS * 86400000;
   }
 
   function renderNewcomers() {
@@ -4008,7 +4014,7 @@
       return `<span class="newcomer-chip fresh"><span>${escapeHtml(m.name)}</span>
         <span class="new-flag">NEW</span><span class="when">가입 ${escapeHtml(when)}</span></span>`;
     }).join("");
-    const promoted = membersState.filter(promotedSignupMember)
+    const promoted = membersState.filter(member => promotedSignupMember(member))
       .sort((a,b) => alertTimestamp(b.promotedAt) - alertTimestamp(a.promotedAt)
         || String(a.name || "").localeCompare(String(b.name || ""), "ko"));
     document.getElementById("promoted-member-count").textContent = `(${promoted.length}명)`;
