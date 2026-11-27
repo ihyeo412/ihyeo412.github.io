@@ -3826,14 +3826,33 @@
   };
   function renderNotices() { renderAlertRows(); }
 
+  // Existing ihike guides shown as notices; retain document/comment IDs.
+  const memberPostsMovedToNotices = new Set([
+    "KUU4P8LtGwCttquJXxjo", // 지도 올리는 방법
+    "uAxBgbQhtWbTG0WaFz0O", // 등업회원 조건
+    "waOHqPLy3ts29lc5nRC5"  // 카풀하시는 방법
+  ]);
+  function alertBoardItems() {
+    return {
+      notices: [
+        ...noticesState.map(item => ({...item, source: "notices"})),
+        ...infosState.filter(item => memberPostsMovedToNotices.has(item.id))
+          .map(item => ({...item, source: "infos"}))
+      ],
+      infos: infosState.filter(item => !memberPostsMovedToNotices.has(item.id))
+        .map(item => ({...item, source: "infos"}))
+    };
+  }
+
   function renderAlertRows() {
     if (window.stopAlertComments) {
       window.stopAlertComments("notices"); window.stopAlertComments("infos");
     }
     const createNotice = document.getElementById("open-notice-modal-btn");
     if (createNotice) createNotice.hidden = !isAdmin();
-    const visibleNotices = renderAlertBoard("notices", noticesState, "notice-list", "notice-pagination", "changeNoticePage");
-    const visiblePosts = renderAlertBoard("infos", infosState, "member-post-list", "member-post-pagination", "changeMemberPostPage");
+    const boardItems = alertBoardItems();
+    const visibleNotices = renderAlertBoard("notices", boardItems.notices, "notice-list", "notice-pagination", "changeNoticePage");
+    const visiblePosts = renderAlertBoard("infos", boardItems.infos, "member-post-list", "member-post-pagination", "changeMemberPostPage");
     if (window.restoreAlertComments) {
       window.restoreAlertComments("notices"); window.restoreAlertComments("infos");
     }
@@ -3843,7 +3862,7 @@
   function renderAlertBoard(source, items, listId, paginationId, changePage) {
     const list = document.getElementById(listId);
     if (!list) return [];
-    const rows = items.map(item => ({...item, source})).sort(compareAlertActivity);
+    const rows = items.map(item => ({...item, source: item.source || source})).sort(compareAlertActivity);
     const pages = Math.max(1, Math.ceil(rows.length / ALERTS_PER_PAGE));
     alertBoardPages[source] = Math.max(1, Math.min(alertBoardPages[source], pages));
     const page = alertBoardPages[source];
@@ -3855,7 +3874,7 @@
       const photos = (Array.isArray(item.images) ? item.images : []).map(safeImageUrl).filter(Boolean);
       const attached = photos.length > 0 || links.some(link => safeUrl(link.url));
       const author = String(item.by || "").replace(/\s*[·|]\s*\d{4}-\d{1,2}-\d{1,2}.*$/, "").trim();
-      const manage = isAdmin() || (item.source === "infos" && getCurrentUid() && item.ownerUid === getCurrentUid());
+      const manage = isAdmin() || (source === "infos" && getCurrentUid() && item.ownerUid === getCurrentUid());
       const edit = item.source === "notices" ? "openEditNoticeModal" : "openEditInfoModal";
       const remove = item.source === "notices" ? "deleteNotice" : "deleteInfo";
       return `<li class="alert-row-item">
@@ -5600,7 +5619,7 @@
     }
 
     document.getElementById("info-edit-id").value = item.id;
-    document.getElementById("info-modal-title").innerText = "회원글 수정";
+    document.getElementById("info-modal-title").innerText = memberPostsMovedToNotices.has(item.id) ? "공지사항 수정" : "회원글 수정";
     document.getElementById("info-submit-btn").innerText = "수정 완료";
 
     document.getElementById("info-title").value = item.title || "";
