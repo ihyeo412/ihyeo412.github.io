@@ -1703,6 +1703,11 @@
     html { scroll-behavior: auto; }
     * { transition: none !important; animation: none !important; }
   }
+  .info-update-badge {
+    display: inline-block; padding: 0.12rem 0.45rem; border-radius: 999px;
+    background: var(--accent-soft); color: var(--accent);
+    font-size: 0.7rem; font-weight: 700; white-space: nowrap;
+  }
 </style>
 </head>
 <body>
@@ -5189,6 +5194,22 @@
   });
 
   /* ── 기타 정보 Render ──────────────────────────────────────────────── */
+  function nextInfoOrder(items) {
+    return items.reduce((max, item) => {
+      const order = Number(item.order);
+      return Number.isFinite(order) ? Math.max(max, order) : max;
+    }, -1) + 1;
+  }
+
+  // Content changes receive a badge for seven days; reordering does not.
+  function infoUpdateLabel(item, now = Date.now()) {
+    const created = Date.parse(item.createdAt || "");
+    const updated = Date.parse(item.updatedAt || "");
+    const recent = time => Number.isFinite(time) && time <= now && now - time < 7 * 86400000;
+    if (recent(updated) && (!Number.isFinite(created) || updated > created)) return "업데이트";
+    return recent(created) ? "NEW" : "";
+  }
+
   function renderInfos() {
     const container = document.getElementById("info-list");
     const currentUser = getCurrentUser();
@@ -5216,6 +5237,7 @@
     }
 
     container.innerHTML = infosState.map(item => {
+      const updateLabel = infoUpdateLabel(item);
       const canEdit = currentUser && (item.ownerUid === getCurrentUid() || isAdmin());
       const links = Array.isArray(item.links) ? item.links : [];
       const shots = (Array.isArray(item.images) ? item.images : [])
@@ -5255,6 +5277,7 @@
                       onclick="toggleInfo('${item.id}')">
                 <span class="chev" aria-hidden="true">▶</span>
                 <span>${escapeHtml(item.title)}</span>
+                ${updateLabel ? `<span class="info-update-badge">${updateLabel}</span>` : ''}
                 ${counts ? `<span class="count">${counts}</span>` : ''}
               </button>
             </h3>
@@ -5306,11 +5329,13 @@
      카드 전체를 항상 draggable 로 두면 본문 글자를 고르거나 링크를 누를 때
      걸리적거립니다. 그래서 손잡이(⠿)를 누르는 순간에만 draggable 을 켭니다. */
   let draggingInfoId = null;
+  let infoOrderSaving = false;
 
   const infoCardEl = (id) =>
     document.querySelector(`#info-list .linklist[data-info-id="${id}"]`);
 
   window.beginInfoDrag = function(handle) {
+    if (infoOrderSaving) return;
     const card = handle.closest(".linklist");
     if (card) card.draggable = true;
   };
@@ -5322,6 +5347,7 @@
   }
 
   window.onInfoDragStart = function(e, id) {
+    if (infoOrderSaving) { e.preventDefault(); return; }
     draggingInfoId = id;
     e.dataTransfer.effectAllowed = "move";
     // Firefox 는 데이터가 있어야 드래그를 시작합니다.
@@ -5368,7 +5394,7 @@
     clearInfoDropMarks();
     onInfoDragEnd();
 
-    if (!movedId || movedId === targetId) return;
+    if (infoOrderSaving || !movedId || movedId === targetId) return;
     if (!isAdmin()) {
       alert("순서 변경은 관리자만 할 수 있습니다.");
       return;
@@ -5391,6 +5417,7 @@
 
     // 화면을 먼저 바꿔 반응을 빠르게 하고, 저장에 실패하면 되돌립니다.
     const previous = infosState;
+    infoOrderSaving = true;
     // 연달아 끌어도 중복 저장이 생기지 않도록 order 값도 함께 맞춰 둡니다.
     infosState = reordered.map((item, index) => ({ ...item, order: index }));
     renderInfos();
@@ -5406,6 +5433,8 @@
       infosState = previous;
       renderInfos();
       alert(`순서를 저장하지 못했습니다.\n(${err.code || err.message})`);
+    } finally {
+      infoOrderSaving = false;
     }
   };
 
@@ -5577,11 +5606,14 @@
 
     try {
       if (editId) {
+        payload.updatedAt = new Date().toISOString();
         await db.collection("infos").doc(editId).update(payload);
       } else {
         payload.ownerUid = getCurrentUid();
         payload.by = `${currentUser} · ${new Date().toISOString().split("T")[0]}`;
-        payload.order = infosState.length;
+        payload.createdAt = new Date().toISOString();
+        payload.updatedAt = payload.createdAt;
+        payload.order = nextInfoOrder(infosState);
         await db.collection("infos").add(payload);
       }
       document.getElementById("info-form").reset();
@@ -5596,6 +5628,10 @@
   document.addEventListener("DOMContentLoaded", () => {
     renderAuthNav();
     initFirestoreSync();
+    // Refresh expiring badges even if no database update arrives.
+    setInterval(() => {
+      if (infosState.some(item => item.createdAt || item.updatedAt)) renderInfos();
+    }, 60000);
   });
 </script>
 
