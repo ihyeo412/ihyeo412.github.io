@@ -1719,15 +1719,15 @@
   .alert-row-link { display: block; margin: 0.3rem 0; overflow-wrap: anywhere; }
   .alert-row-actions { display: flex; gap: 0.4rem; margin: 0.5rem 0; }
   @media (max-width: 600px) { .alert-row-line { gap: 0.5rem; font-size: 0.78rem; } }
-  #notices { height: auto; min-height: 0; margin-top: 0.6rem; padding: 0.5rem 0.8rem; }
-  #notices .notices-head { margin-bottom: 0.35rem; gap: 0.5rem; }
-  #notices .notices-head h3 { font-size: 0.95rem; font-weight: 600; letter-spacing: 0.02em; }
-  #notices .head-actions .btn { font-size: 0.72rem; padding: 0.3rem 0.55rem; }
+  .alert-board { height: auto; min-height: 0; margin-top: 0; padding: 0.5rem 0.8rem; }
+  .alert-board .notices-head { margin-bottom: 0.35rem; gap: 0.5rem; }
+  .alert-board .notices-head h3 { font-size: 0.95rem; font-weight: 600; letter-spacing: 0.02em; }
+  .alert-board .notices-head .btn { font-size: 0.72rem; padding: 0.3rem 0.55rem; }
   #notices #info { display: none; padding: 0; margin: 0; }
   #notices #info-list { margin: 0; }
-  #alert-pagination { margin: 0.4rem 0 0; gap: 0.3rem; }
-  #alert-pagination[hidden] { display: none; }
-  #alert-pagination .page-btn { min-width: 1.6rem; height: 1.6rem; font-size: 0.75rem; padding: 0.15rem 0.35rem; }
+  .alert-board-pagination { margin: 0.4rem 0 0; gap: 0.3rem; }
+  .alert-board-pagination[hidden] { display: none; }
+  .alert-board-pagination .page-btn { min-width: 1.6rem; height: 1.6rem; font-size: 0.75rem; padding: 0.15rem 0.35rem; }
   .alert-row-update { flex-shrink: 0; font-size: 0.65rem; font-weight: 700; }
   .alert-row-update[hidden] { display: none; }
   .alert-row-date { flex-shrink: 0; color: var(--muted); font-size: 0.68rem; white-space: nowrap; }
@@ -1736,6 +1736,10 @@
     .alert-row-title { flex-basis: auto; }
     .alert-row-date { font-size: 0.63rem; }
   }
+  .alert-boards { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; margin-top: 0.6rem; align-items: start; }
+  .alert-board { min-width: 0; }
+  .alert-board-empty { margin: 0.5rem 0; color: var(--muted); font-size: 0.8rem; }
+  @media (max-width: 760px) { .alert-boards { grid-template-columns: minmax(0, 1fr); gap: 0.7rem; } }
 </style>
 </head>
 <body>
@@ -1777,20 +1781,25 @@
     </section>
 
     <!-- ── 공지 (맨 위 그림 바로 아래) ──────────────────────────────── -->
-    <section class="notices" id="notices">
-      <div class="notices-head">
-        <h3>📢 알림글</h3>
-        <div class="head-actions">
-          <button type="button" class="btn btn-solid btn-sm" id="open-info-modal-btn">+ 알림글 작성</button>
+    <div class="alert-boards">
+      <section class="notices alert-board" id="notices" aria-labelledby="notices-title">
+        <div class="notices-head">
+          <h3 id="notices-title">공지사항</h3>
+          <button type="button" class="btn btn-solid btn-sm" id="open-notice-modal-btn" hidden>+ 공지 작성</button>
         </div>
-      </div>
-      <div class="notice-list" id="notice-list"></div>
-      <nav class="pagination" id="alert-pagination" aria-label="알림글 페이지" hidden></nav>
-      <div id="info" hidden>
-        <span class="period" id="info-summary" hidden></span>
-        <div class="cols" id="info-list">알림글을 불러오는 중입니다…</div>
-      </div>
-    </section>
+        <div class="notice-list" id="notice-list"></div>
+        <nav class="pagination alert-board-pagination" id="notice-pagination" aria-label="공지사항 페이지" hidden></nav>
+      </section>
+      <section class="notices alert-board" id="member-posts" aria-labelledby="member-posts-title">
+        <div class="notices-head">
+          <h3 id="member-posts-title">회원글</h3>
+          <button type="button" class="btn btn-solid btn-sm" id="open-info-modal-btn">+ 회원글 작성</button>
+        </div>
+        <div class="notice-list" id="member-post-list"></div>
+        <nav class="pagination alert-board-pagination" id="member-post-pagination" aria-label="회원글 페이지" hidden></nav>
+      </section>
+    </div>
+    <div id="info" hidden><span id="info-summary" hidden></span><div id="info-list" hidden></div></div>
 
 
 
@@ -2359,12 +2368,12 @@
     </form>
   </dialog>
 
-  <!-- ── 중요 알림 작성 / 수정 ──────────────────────────────────────────── -->
+  <!-- ── 공지사항 작성 / 수정 ──────────────────────────────────────────── -->
   <dialog id="notice-modal" class="modal">
     <form id="notice-form" method="dialog" class="modal-box">
       <input type="hidden" id="notice-edit-id" value="">
       <div class="modal-head">
-        <h3 id="notice-modal-title">중요 알림 작성</h3>
+        <h3 id="notice-modal-title">공지사항 작성</h3>
         <button type="button" id="close-notice-modal-btn" class="close-btn" aria-label="닫기">×</button>
       </div>
 
@@ -2380,24 +2389,24 @@
         <label class="full">
           <span>
             <input type="checkbox" id="notice-pinned" style="width:auto; margin-right:0.4rem;">
-            중요 알림로 표시 (맨 위에 고정)
+            공지사항로 표시 (맨 위에 고정)
           </span>
         </label>
       </div>
 
       <div class="modal-foot">
         <button type="button" class="btn btn-ghost" id="cancel-notice-btn">취소</button>
-        <button type="submit" class="btn btn-solid" id="notice-submit-btn">중요 알림 등록</button>
+        <button type="submit" class="btn btn-solid" id="notice-submit-btn">공지사항 등록</button>
       </div>
     </form>
   </dialog>
 
-  <!-- ── 알림글 작성 / 수정 ─────────────────────────────────────── -->
+  <!-- ── 회원글 작성 / 수정 ─────────────────────────────────────── -->
   <dialog id="info-modal" class="modal">
     <form id="info-form" method="dialog" class="modal-box">
       <input type="hidden" id="info-edit-id" value="">
       <div class="modal-head">
-        <h3 id="info-modal-title">알림글 작성</h3>
+        <h3 id="info-modal-title">회원글 작성</h3>
         <button type="button" id="close-info-modal-btn" class="close-btn" aria-label="닫기">×</button>
       </div>
 
@@ -3761,7 +3770,7 @@
   };
 
   const ALERTS_PER_PAGE = 5;
-  let currentAlertPage = 1;
+  const alertBoardPages = {notices: 1, infos: 1};
   // Expire labels without redrawing rows or interrupting open comments.
   function refreshAlertUpdateBadges() {
     const rows = new Map([
@@ -3809,28 +3818,37 @@
   }
 
   const expandedAlertRows = new Set();
-  window.changeAlertPage = function(page) {
-    currentAlertPage = page;
-    renderAlertRows();
+  window.changeNoticePage = function(page) {
+    alertBoardPages.notices = page; renderAlertRows();
+  };
+  window.changeMemberPostPage = function(page) {
+    alertBoardPages.infos = page; renderAlertRows();
   };
   function renderNotices() { renderAlertRows(); }
 
   function renderAlertRows() {
-    const box = document.getElementById("notices");
-    const list = document.getElementById("notice-list");
-    if (!box || !list) return;
     if (window.stopAlertComments) {
       window.stopAlertComments("notices"); window.stopAlertComments("infos");
     }
-    box.hidden = false;
-    document.getElementById("info-list").innerHTML = "";
-    document.getElementById("info-list").hidden = true;
-    const rows = [...noticesState.map(item => ({...item, source: "notices"})),
-      ...infosState.map(item => ({...item, source: "infos"}))].sort(compareAlertActivity);
-    const totalAlertPages = Math.max(1, Math.ceil(rows.length / ALERTS_PER_PAGE));
-    currentAlertPage = Math.max(1, Math.min(currentAlertPage, totalAlertPages));
-    const visibleRows = rows.slice((currentAlertPage - 1) * ALERTS_PER_PAGE, currentAlertPage * ALERTS_PER_PAGE);
-    list.innerHTML = `<ul class="alert-row-list">${visibleRows.map(item => {
+    const createNotice = document.getElementById("open-notice-modal-btn");
+    if (createNotice) createNotice.hidden = !isAdmin();
+    const visibleNotices = renderAlertBoard("notices", noticesState, "notice-list", "notice-pagination", "changeNoticePage");
+    const visiblePosts = renderAlertBoard("infos", infosState, "member-post-list", "member-post-pagination", "changeMemberPostPage");
+    if (window.restoreAlertComments) {
+      window.restoreAlertComments("notices"); window.restoreAlertComments("infos");
+    }
+    if (window.watchAlertCounts) window.watchAlertCounts([...visibleNotices, ...visiblePosts]);
+  }
+
+  function renderAlertBoard(source, items, listId, paginationId, changePage) {
+    const list = document.getElementById(listId);
+    if (!list) return [];
+    const rows = items.map(item => ({...item, source})).sort(compareAlertActivity);
+    const pages = Math.max(1, Math.ceil(rows.length / ALERTS_PER_PAGE));
+    alertBoardPages[source] = Math.max(1, Math.min(alertBoardPages[source], pages));
+    const page = alertBoardPages[source];
+    const visibleRows = rows.slice((page - 1) * ALERTS_PER_PAGE, page * ALERTS_PER_PAGE);
+    list.innerHTML = rows.length ? `<ul class="alert-row-list">${visibleRows.map(item => {
       const key = `${item.source}/${item.id}`;
       const open = expandedAlertRows.has(key);
       const links = Array.isArray(item.links) ? item.links : [];
@@ -3866,14 +3884,11 @@
           <div id="alert-comments-${item.source}-${item.id}" hidden></div>
         </div>
       </li>`;
-    }).join("")}</ul>`;
-    if (window.restoreAlertComments) {
-      window.restoreAlertComments("notices"); window.restoreAlertComments("infos");
-    }
-    const pagination = document.getElementById("alert-pagination");
-    pagination.hidden = totalAlertPages <= 1;
-    renderPagination(rows.length, currentAlertPage, "alert-pagination", "changeAlertPage", ALERTS_PER_PAGE);
-    if (window.watchAlertCounts) window.watchAlertCounts(visibleRows);
+    }).join("")}</ul>` : `<p class="alert-board-empty">${source === "notices" ? '등록된 공지사항이 없습니다.' : '등록된 회원글이 없습니다.'}</p>`;
+    const pagination = document.getElementById(paginationId);
+    pagination.hidden = pages <= 1;
+    renderPagination(rows.length, page, paginationId, changePage, ALERTS_PER_PAGE);
+    return visibleRows;
   }
   window.toggleAlertRow = function(source, id) {
     const key = `${source}/${id}`;
@@ -3887,6 +3902,15 @@
   };
 
   const noticeModal = document.getElementById("notice-modal");
+  document.getElementById("open-notice-modal-btn").addEventListener("click", () => {
+    if (!isAdmin()) { alert("공지사항은 운영자만 작성할 수 있습니다."); return; }
+    document.getElementById("notice-form").reset();
+    document.getElementById("notice-edit-id").value = "";
+    document.getElementById("notice-modal-title").textContent = "공지사항 작성";
+    document.getElementById("notice-submit-btn").textContent = "공지 등록";
+    noticeModal.showModal();
+  });
+
 
   window.openEditNoticeModal = function(id) {
     if (!isAdmin()) return;
@@ -3894,7 +3918,7 @@
     if (!n) return;
 
     document.getElementById("notice-edit-id").value = n.id;
-    document.getElementById("notice-modal-title").innerText = "중요 알림 수정";
+    document.getElementById("notice-modal-title").innerText = "공지사항 수정";
     document.getElementById("notice-submit-btn").innerText = "수정 완료";
     document.getElementById("notice-title").value = n.title || "";
     document.getElementById("notice-content").value = n.content || "";
@@ -3908,7 +3932,7 @@
   document.getElementById("notice-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     if (!isAdmin()) {
-      alert("중요 알림 작성은 관리자만 할 수 있습니다.");
+      alert("공지사항 작성은 관리자만 할 수 있습니다.");
       return;
     }
 
@@ -5552,13 +5576,13 @@
 
   document.getElementById("open-info-modal-btn").addEventListener("click", () => {
     const currentUser = getCurrentUser();
-    if (!isRegularMember(currentUser)) {
-      alert("알림글 작성은 [정회원]만 가능합니다.");
+    if (!currentUser) {
+      alert("회원글은 로그인 후 작성할 수 있습니다.");
       if (!currentUser) openAuthModal(false);
       return;
     }
     document.getElementById("info-edit-id").value = "";
-    document.getElementById("info-modal-title").innerText = "알림글 작성";
+    document.getElementById("info-modal-title").innerText = "회원글 작성";
     document.getElementById("info-submit-btn").innerText = "정보 등록";
     document.getElementById("info-form").reset();
     infoDraftImages = [];
@@ -5576,7 +5600,7 @@
     }
 
     document.getElementById("info-edit-id").value = item.id;
-    document.getElementById("info-modal-title").innerText = "알림글 수정";
+    document.getElementById("info-modal-title").innerText = "회원글 수정";
     document.getElementById("info-submit-btn").innerText = "수정 완료";
 
     document.getElementById("info-title").value = item.title || "";
