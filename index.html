@@ -1714,9 +1714,9 @@
   .alert-comments .comment-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
   #info-list { margin-top: 0.8rem; }
   .alert-row-list { list-style: none; margin: 0; padding: 0; }
-  .alert-row-line { display: flex; align-items: center; gap: 1rem; min-height: 2.25rem; }
+  .alert-row-line { display: flex; align-items: center; gap: 0.75rem; min-height: 1.7rem; font-size: 0.82rem; line-height: 1.4; }
   .alert-row-title { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.35rem;
-    border: 0; background: none; padding: 0.35rem 0; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+    border: 0; background: none; padding: 0.2rem 0; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
   .alert-row-title:hover .alert-row-text { text-decoration: underline; }
   .alert-row-kind { flex-shrink: 0; padding-right: 0.45rem; border-right: 1px solid var(--hairline); }
   .alert-row-text { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
@@ -1729,7 +1729,15 @@
   .alert-row-content { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.7; }
   .alert-row-link { display: block; margin: 0.3rem 0; overflow-wrap: anywhere; }
   .alert-row-actions { display: flex; gap: 0.4rem; margin: 0.5rem 0; }
-  @media (max-width: 600px) { .alert-row-line { gap: 0.5rem; font-size: 0.9rem; } }
+  @media (max-width: 600px) { .alert-row-line { gap: 0.5rem; font-size: 0.78rem; } }
+  #notices { height: auto; min-height: 0; padding: 0.75rem 1rem; }
+  #notices .notices-head { margin-bottom: 0.35rem; gap: 0.5rem; }
+  #notices .notices-head h3 { font-size: 0.92rem; }
+  #notices .head-actions .btn { font-size: 0.72rem; padding: 0.3rem 0.55rem; }
+  #notices #info-list { margin: 0; }
+  #alert-pagination { margin: 0.4rem 0 0; gap: 0.3rem; }
+  #alert-pagination[hidden] { display: none; }
+  #alert-pagination .page-btn { min-width: 1.6rem; height: 1.6rem; font-size: 0.75rem; padding: 0.15rem 0.35rem; }
 </style>
 </head>
 <body>
@@ -1780,6 +1788,7 @@
         </div>
       </div>
       <div class="notice-list" id="notice-list"></div>
+      <nav class="pagination" id="alert-pagination" aria-label="알림글 페이지" hidden></nav>
       <div id="info">
         <span class="period" id="info-summary" hidden></span>
         <div class="cols" id="info-list">알림글을 불러오는 중입니다…</div>
@@ -3756,7 +3765,13 @@
     }
   };
 
+  const ALERTS_PER_PAGE = 5;
+  let currentAlertPage = 1;
   const expandedAlertRows = new Set();
+  window.changeAlertPage = function(page) {
+    currentAlertPage = page;
+    renderAlertRows();
+  };
   function renderNotices() { renderAlertRows(); }
 
   function renderAlertRows() {
@@ -3774,7 +3789,10 @@
       || String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
     const rows = [...notices.map(item => ({...item, source: "notices"})),
       ...infosState.map(item => ({...item, source: "infos"}))];
-    list.innerHTML = `<ul class="alert-row-list">${rows.map(item => {
+    const totalAlertPages = Math.max(1, Math.ceil(rows.length / ALERTS_PER_PAGE));
+    currentAlertPage = Math.max(1, Math.min(currentAlertPage, totalAlertPages));
+    const visibleRows = rows.slice((currentAlertPage - 1) * ALERTS_PER_PAGE, currentAlertPage * ALERTS_PER_PAGE);
+    list.innerHTML = `<ul class="alert-row-list">${visibleRows.map(item => {
       const key = `${item.source}/${item.id}`;
       const open = expandedAlertRows.has(key);
       const links = Array.isArray(item.links) ? item.links : [];
@@ -3813,7 +3831,10 @@
     if (window.restoreAlertComments) {
       window.restoreAlertComments("notices"); window.restoreAlertComments("infos");
     }
-    if (window.watchAlertCounts) window.watchAlertCounts(rows);
+    const pagination = document.getElementById("alert-pagination");
+    pagination.hidden = totalAlertPages <= 1;
+    renderPagination(rows.length, currentAlertPage, "alert-pagination", "changeAlertPage", ALERTS_PER_PAGE);
+    if (window.watchAlertCounts) window.watchAlertCounts(visibleRows);
   }
   window.toggleAlertRow = function(source, id) {
     const key = `${source}/${id}`;
